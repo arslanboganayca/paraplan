@@ -1709,7 +1709,6 @@ function openEditBudgetModal(id){
   document.getElementById('bm-cat').innerHTML=(state.categories||[]).map(c=>`<option ${c===item.cat?'selected':''}>${esc(c)}</option>`).join('');
   document.getElementById('bm-person').innerHTML=state.persons.map(p=>`<option ${p.name===item.person?'selected':''}>${esc(p.name)}</option>`).join('');
   document.getElementById('bm-subcat-new').style.display='none';
-  populateSubcatSelect('bm-subcat',item.cat,item.subcat||'');
   // Amount field: show current month value as read-only hint; editing is done inline
   const amountGroup = document.getElementById('bm-amount-group');
   if(amountGroup) amountGroup.innerHTML=`
@@ -1720,7 +1719,8 @@ function openEditBudgetModal(id){
     </div>
     <div class="field-helper mt8">Tutarı değiştirmek için tablodan ilgili satıra tıklayın.</div>`;
   document.getElementById('bm-duplicate-warn').style.display='none';
-  setBmType(_bmType);updateBmChips();
+  setBmType(_bmType);
+  updateBmChips(item.subcat||'');
   openDialog('budget-dialog');
 }
 function setBmType(t){
@@ -1731,9 +1731,9 @@ function setBmType(t){
   if(hint)hint.textContent=t==='fixed'?'🔒 Sabit: Kira, aidat gibi her ay aynı tutar.':'↕ Değişken: Market, eğlence gibi esnek gider.';
 }
 function getSubcatsForCat(cat){
-  const fromItems=(state.budgetItems||[]).filter(b=>b.cat===cat).map(b=>b.subcat).filter(Boolean);
+  const predefined=SUB[cat]||[];
   const custom=((state.customSubcats||{})[cat])||[];
-  return [...new Set([...fromItems,...(SUB[cat]||[]),...custom])].sort();
+  return [...new Set([...predefined,...custom])].sort();
 }
 
 function populateSubcatSelect(selectId,cat,currentVal){
