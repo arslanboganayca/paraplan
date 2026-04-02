@@ -844,7 +844,7 @@ const CAT_EMOJIS = {
 
 const SUB = {
   Konut:      ['Kira','Aidat','Elektrik & Su','Doğalgaz','İnternet','Temizlik','Bakım/Onarım'],
-  Gıda:       ['Market','Süpermarket','Manav/Kasap','Fırın','Online Market','Şarküteri'],
+  Gıda:       ['Market','Süpermarket','Manav','Kasap','Pazar','Fırın','Online Market','Şarküteri'],
   Sağlık:     ['Reçeteli İlaç','Besin Takviyesi','Vitamin','Eczane','Doktor','Diş','Tahlil','Terapi'],
   Spor:       ['Kişisel Antrenör','Spor Kulübü Üyeliği','Spor Lisansı','Spor Malzemesi','Kurs/Antrenör'],
   Hobi:       ['Yaratıcı Atölye','Kurs/Ders','Malzeme','Kitap','Müzik'],
@@ -1152,7 +1152,9 @@ function initSetup(){
     // Gıda
     {id:1005,cat:'Gıda',                 subcat:'Market',                person:'Aile',   budget:14000, type:'variable',budgetHistory:bh(14000)},
     {id:1006,cat:'Gıda',                 subcat:'Süpermarket',           person:'Aile',   budget:3000,  type:'variable',budgetHistory:bh(3000)},
-    {id:1007,cat:'Gıda',                 subcat:'Manav/Kasap',           person:'Aile',   budget:3000,  type:'variable',budgetHistory:bh(3000)},
+    {id:1007,cat:'Gıda',                 subcat:'Manav',                 person:'Aile',   budget:2000,  type:'variable',budgetHistory:bh(2000)},
+    {id:10071,cat:'Gıda',                subcat:'Kasap',                 person:'Aile',   budget:1500,  type:'variable',budgetHistory:bh(1500)},
+    {id:10072,cat:'Gıda',                subcat:'Pazar',                 person:'Aile',   budget:1500,  type:'variable',budgetHistory:bh(1500)},
     // Sağlık
     {id:1008,cat:'Sağlık',               subcat:'Reçeteli İlaç',         person:'Kişi 1', budget:5000,  type:'fixed',   budgetHistory:bh(5000)},
     {id:1009,cat:'Sağlık',               subcat:'Besin Takviyesi',       person:'Aile',   budget:2000,  type:'variable',budgetHistory:bh(2000)},
@@ -1212,7 +1214,8 @@ function initSetup(){
     {id:2009,date:d(8), cat:'Eğitim',               subcat:'Okul Taksiti',         person:'Kişi 1', payment:'Havale',         amount:38000, note:'Aylık taksit'},
     {id:2010,date:d(9), cat:'Eğitim',               subcat:'Okul Taksiti',         person:'Kişi 2', payment:'Havale',         amount:39000, note:'Aylık taksit'},
     {id:2011,date:d(10),cat:'Gıda',                 subcat:'Market',               person:'Aile',   payment:'Kredi Kartı',    amount:2800,  note:''},
-    {id:2012,date:d(11),cat:'Gıda',                 subcat:'Manav/Kasap',          person:'Aile',   payment:'Nakit',          amount:1200,  note:''},
+    {id:2012,date:d(11),cat:'Gıda',                 subcat:'Manav',                person:'Aile',   payment:'Nakit',          amount:800,   note:''},
+    {id:20121,date:d(13),cat:'Gıda',               subcat:'Pazar',                person:'Aile',   payment:'Nakit',          amount:600,   note:'Haftalık pazar'},
     {id:2013,date:d(12),cat:'Eğlence',              subcat:'Online Kurs',          person:'Kişi 1', payment:'Kredi Kartı',    amount:0,     note:'Bu ay kullanılmadı'},
     {id:2014,date:d(13),cat:'Dijital Abonelik',     subcat:'Müzik Servisi',        person:'Aile',   payment:'Otomatik Ödeme', amount:319,   note:''},
     {id:2015,date:d(13),cat:'Dijital Abonelik',     subcat:'Bulut Depolama',       person:'Kişi 1', payment:'Otomatik Ödeme', amount:278,   note:''},
