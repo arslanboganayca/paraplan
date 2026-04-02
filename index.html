@@ -733,8 +733,13 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
         <div class="field"><label class="field-label">Kategori</label><select class="field-input" id="tx-cat" onchange="populateTxSubcat()"></select></div>
         <div class="field"><label class="field-label">Kişi</label><select class="field-input" id="tx-person"></select></div>
       </div>
-      <div class="field mb8"><label class="field-label">Alt Kategori</label><input type="text" class="field-input" id="tx-subcat" placeholder="Seç veya yaz..."></div>
-      <div class="chips-row" id="tx-subcat-chips"></div>
+      <div class="field mb8">
+        <label class="field-label">Alt Kategori</label>
+        <select class="field-input" id="tx-subcat" onchange="handleSubcatSelect('tx')"></select>
+      </div>
+      <div id="tx-subcat-new" style="display:none;" class="field mb8">
+        <input type="text" class="field-input" id="tx-subcat-new-input" placeholder="Yeni alt kategori adı...">
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;" class="mb12">
         <div class="field"><label class="field-label">Ödeme Tipi</label>
           <select class="field-input" id="tx-payment">
@@ -763,8 +768,13 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
         <div class="field"><label class="field-label">Kategori</label><select class="field-input" id="bm-cat" onchange="updateBmChips()"></select></div>
         <div class="field"><label class="field-label">Kişi</label><select class="field-input" id="bm-person"></select></div>
       </div>
-      <div class="field mb8"><label class="field-label">Alt Kategori</label><input type="text" class="field-input" id="bm-subcat" placeholder="Seç veya yaz..."></div>
-      <div class="chips-row" id="bm-subcat-chips"></div>
+      <div class="field mb8">
+        <label class="field-label">Alt Kategori</label>
+        <select class="field-input" id="bm-subcat" onchange="handleSubcatSelect('bm')"></select>
+      </div>
+      <div id="bm-subcat-new" style="display:none;" class="field mb8">
+        <input type="text" class="field-input" id="bm-subcat-new-input" placeholder="Yeni alt kategori adı...">
+      </div>
       <div class="field mb8">
         <label class="field-label">Gider Türü</label>
         <div class="type-seg">
@@ -1214,26 +1224,28 @@ function addCategory(){state.categories.push('Yeni Kategori');renderCategoryList
 
 function renderBudgetSetup(){
   if(!state.budgetItems)state.budgetItems=[];
-  const dls=state.categories.map(c=>`<datalist id="dl-${c.replace(/[^a-zA-Z0-9]/g,'_')}">${(SUB[c]||[]).map(s=>`<option value="${esc(s)}">`).join('')}</datalist>`).join('');
   document.getElementById('budget-setup-tbody').innerHTML=state.budgetItems.map((item,i)=>{
-    const dlId=`dl-${(item.cat||'').replace(/[^a-zA-Z0-9]/g,'_')}`;
     const isFixed=item.type==='fixed';
+    const subcatOpts=getSubcatsForCat(item.cat);
+    const subcatSel=subcatOpts.map(s=>`<option value="${esc(s)}"${s===item.subcat?' selected':''}>${esc(s)}</option>`).join('')
+      +`<option value="__new__">+ Yeni...</option>`;
+    const selStyle='border:1px solid var(--md-outline-variant);border-radius:6px;padding:6px 8px;font-family:\'Roboto\',sans-serif;font-size:13px;background:transparent;cursor:pointer;max-width:160px;';
     return `<tr>
-      <td><select onchange="state.budgetItems[${i}].cat=this.value;renderBudgetSetup();" style="border:1px solid var(--md-outline-variant);border-radius:6px;padding:6px 8px;font-family:'Roboto',sans-serif;font-size:13px;background:transparent;cursor:pointer;">
+      <td><select onchange="state.budgetItems[${i}].cat=this.value;renderBudgetSetup();" style="${selStyle}">
         ${state.categories.map(c=>`<option ${c===item.cat?'selected':''}>${esc(c)}</option>`).join('')}
       </select></td>
-      <td><input value="${esc(item.subcat||'')}" list="${dlId}" onchange="state.budgetItems[${i}].subcat=this.value" style="border:none;background:transparent;font-size:13px;width:100%;font-family:'Roboto',sans-serif;" placeholder="Alt kategori..."></td>
-      <td><select onchange="state.budgetItems[${i}].person=this.value" style="border:1px solid var(--md-outline-variant);border-radius:6px;padding:6px 8px;font-family:'Roboto',sans-serif;font-size:13px;background:transparent;cursor:pointer;">
+      <td><select onchange="if(this.value==='__new__'){const v=prompt('Yeni alt kategori:');if(v&&v.trim()){if(!state.customSubcats)state.customSubcats={};if(!state.customSubcats['${esc(item.cat)}'])state.customSubcats['${esc(item.cat)}']=[];state.customSubcats['${esc(item.cat)}'].push(v.trim());state.budgetItems[${i}].subcat=v.trim();renderBudgetSetup();}else{this.value='${esc(item.subcat||'')}';}}else{state.budgetItems[${i}].subcat=this.value;}" style="${selStyle}">${subcatSel}</select></td>
+      <td><select onchange="state.budgetItems[${i}].person=this.value" style="${selStyle}">
         ${state.persons.map(p=>`<option ${p.name===item.person?'selected':''}>${esc(p.name)}</option>`).join('')}
       </select></td>
-      <td><select onchange="state.budgetItems[${i}].type=this.value" style="border:1px solid var(--md-outline-variant);border-radius:6px;padding:6px 8px;font-family:'Roboto',sans-serif;font-size:12px;background:transparent;cursor:pointer;">
+      <td><select onchange="state.budgetItems[${i}].type=this.value" style="${selStyle}">
         <option value="variable" ${!isFixed?'selected':''}>↕ Değişken</option>
         <option value="fixed" ${isFixed?'selected':''}>🔒 Sabit</option>
       </select></td>
       <td class="text-right"><input type="number" value="${getBudgetForMonth(item,'2000-01')}" min="0" onchange="setBudgetSetupAmount(${i},+this.value)" style="border:1px solid var(--md-outline-variant);border-radius:6px;padding:6px 8px;font-family:'Roboto',sans-serif;font-size:13px;text-align:right;width:90px;background:transparent;"></td>
       <td><button class="btn-icon" onclick="state.budgetItems.splice(${i},1);renderBudgetSetup();">✕</button></td>
     </tr>`;
-  }).join('')+dls;
+  }).join('');
 }
 function addBudgetRow(){
   state.budgetItems.push({
@@ -1642,8 +1654,9 @@ function openAddBudgetModal(){
   document.getElementById('bm-dialog-title').textContent='Bütçe Kalemi Ekle';
   document.getElementById('bm-cat').innerHTML=(state.categories||[]).map(c=>`<option>${esc(c)}</option>`).join('');
   document.getElementById('bm-person').innerHTML=state.persons.map(p=>`<option>${esc(p.name)}</option>`).join('');
-  document.getElementById('bm-subcat').value='';document.getElementById('bm-amount').value='';
+  document.getElementById('bm-amount').value='';
   document.getElementById('bm-duplicate-warn').style.display='none';
+  document.getElementById('bm-subcat-new').style.display='none';
   setBmType('variable');updateBmChips();
   openDialog('budget-dialog');
 }
@@ -1653,7 +1666,8 @@ function openEditBudgetModal(id){
   document.getElementById('bm-dialog-title').textContent='Kalem Düzenle';
   document.getElementById('bm-cat').innerHTML=(state.categories||[]).map(c=>`<option ${c===item.cat?'selected':''}>${esc(c)}</option>`).join('');
   document.getElementById('bm-person').innerHTML=state.persons.map(p=>`<option ${p.name===item.person?'selected':''}>${esc(p.name)}</option>`).join('');
-  document.getElementById('bm-subcat').value=item.subcat||'';
+  document.getElementById('bm-subcat-new').style.display='none';
+  populateSubcatSelect('bm-subcat',item.cat,item.subcat||'');
   // Amount field: show current month value as read-only hint; editing is done inline
   const amountGroup = document.getElementById('bm-amount-group');
   if(amountGroup) amountGroup.innerHTML=`
@@ -1674,17 +1688,61 @@ function setBmType(t){
   if(vb)vb.className='type-seg-btn'+(t==='variable'?' active-variable':'');
   if(hint)hint.textContent=t==='fixed'?'🔒 Sabit: Kira, aidat gibi her ay aynı tutar.':'↕ Değişken: Market, eğlence gibi esnek gider.';
 }
+function getSubcatsForCat(cat){
+  const fromItems=(state.budgetItems||[]).filter(b=>b.cat===cat).map(b=>b.subcat).filter(Boolean);
+  const custom=((state.customSubcats||{})[cat])||[];
+  return [...new Set([...fromItems,...(SUB[cat]||[]),...custom])].sort();
+}
+
+function populateSubcatSelect(selectId,cat,currentVal){
+  const sel=document.getElementById(selectId);
+  if(!sel)return;
+  const opts=getSubcatsForCat(cat);
+  sel.innerHTML=opts.map(s=>`<option value="${esc(s)}"${currentVal===s?' selected':''}>${esc(s)}</option>`).join('')
+    +`<option value="__new">+ Yeni alt kategori ekle...</option>`;
+  if(currentVal&&opts.includes(currentVal))sel.value=currentVal;
+  else if(opts.length)sel.value=opts[0];
+}
+
+function handleSubcatSelect(prefix){
+  const sel=document.getElementById(`${prefix}-subcat`);
+  const wrap=document.getElementById(`${prefix}-subcat-new`);
+  if(!sel||!wrap)return;
+  wrap.style.display=sel.value==='__new'?'block':'none';
+  if(sel.value==='__new'){
+    setTimeout(()=>document.getElementById(`${prefix}-subcat-new-input`)?.focus(),50);
+  }
+}
+
+function getSubcatValue(prefix){
+  const sel=document.getElementById(`${prefix}-subcat`);
+  if(sel&&sel.value==='__new'){
+    const inp=document.getElementById(`${prefix}-subcat-new-input`);
+    const val=inp?.value?.trim()||'';
+    if(val){
+      const cat=document.getElementById(`${prefix}-cat`)?.value||'';
+      if(!state.customSubcats)state.customSubcats={};
+      if(!state.customSubcats[cat])state.customSubcats[cat]=[];
+      if(!state.customSubcats[cat].includes(val))state.customSubcats[cat].push(val);
+    }
+    return val;
+  }
+  return sel?.value||'';
+}
+
 function updateBmChips(){
   const cat=document.getElementById('bm-cat')?.value;
-  const el=document.getElementById('bm-subcat-chips'),inp=document.getElementById('bm-subcat');
-  if(!el||!cat)return;
-  const cur=inp?.value||'';
-  el.innerHTML=(SUB[cat]||[]).map(p=>`<span class="chip chip-sm chip-input${cur===p?' selected':''}" onclick="selectChip('bm-subcat','${esc(p)}',updateBmChips)">${esc(p)}</span>`).join('');
+  if(!cat)return;
+  const cur=document.getElementById('bm-subcat')?.value||'';
+  populateSubcatSelect('bm-subcat',cat,cur);
+  // hide new-input if visible
+  const wrap=document.getElementById('bm-subcat-new');
+  if(wrap)wrap.style.display='none';
 }
 function selectChip(id,val,cb){const el=document.getElementById(id);if(el)el.value=val;if(cb)cb();}
 function saveBudgetItem(){
   const cat    = document.getElementById('bm-cat').value;
-  const subcat = document.getElementById('bm-subcat').value;
+  const subcat = getSubcatValue('bm');
   const person = document.getElementById('bm-person').value;
 
   if(_editingBudgetId){
@@ -1763,14 +1821,12 @@ function updateTxSavingsHint(){
 }
 
 function populateTxSubcat(){
-  const cat=document.getElementById('tx-cat').value;
+  const cat=document.getElementById('tx-cat')?.value||'';
   updateTxSavingsHint();
-  const el=document.getElementById('tx-subcat-chips'),inp=document.getElementById('tx-subcat');
-  if(!el)return;
-  const fromItems=(state.budgetItems||[]).filter(b=>b.cat===cat).map(b=>b.subcat).filter(Boolean);
-  const all=[...new Set([...fromItems,...(SUB[cat]||[])])];
-  const cur=inp?.value||'';
-  el.innerHTML=all.map(s=>`<span class="chip chip-sm chip-input${cur===s?' selected':''}" onclick="selectChip('tx-subcat','${esc(s)}',populateTxSubcat)">${esc(s)}</span>`).join('');
+  const cur=document.getElementById('tx-subcat')?.value||'';
+  populateSubcatSelect('tx-subcat',cat,cur);
+  const wrap=document.getElementById('tx-subcat-new');
+  if(wrap)wrap.style.display='none';
 }
 
 function saveTx(){
@@ -1780,7 +1836,7 @@ function saveTx(){
     id:_editingTxId||Date.now(),
     date:document.getElementById('tx-date').value,
     cat:document.getElementById('tx-cat').value,
-    subcat:document.getElementById('tx-subcat').value,
+    subcat:getSubcatValue('tx'),
     person:document.getElementById('tx-person').value,
     payment:document.getElementById('tx-payment').value,
     amount, note:document.getElementById('tx-note').value,
