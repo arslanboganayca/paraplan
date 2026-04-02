@@ -1231,7 +1231,7 @@ function renderBudgetSetup(){
       +`<option value="__new__">+ Yeni...</option>`;
     const selStyle='border:1px solid var(--md-outline-variant);border-radius:6px;padding:6px 8px;font-family:\'Roboto\',sans-serif;font-size:13px;background:transparent;cursor:pointer;max-width:160px;';
     return `<tr>
-      <td><select onchange="state.budgetItems[${i}].cat=this.value;renderBudgetSetup();" style="${selStyle}">
+      <td><select onchange="state.budgetItems[${i}].cat=this.value;state.budgetItems[${i}].subcat='';renderBudgetSetup();" style="${selStyle}">
         ${state.categories.map(c=>`<option ${c===item.cat?'selected':''}>${esc(c)}</option>`).join('')}
       </select></td>
       <td><select onchange="if(this.value==='__new__'){const v=prompt('Yeni alt kategori:');if(v&&v.trim()){if(!state.customSubcats)state.customSubcats={};if(!state.customSubcats['${esc(item.cat)}'])state.customSubcats['${esc(item.cat)}']=[];state.customSubcats['${esc(item.cat)}'].push(v.trim());state.budgetItems[${i}].subcat=v.trim();renderBudgetSetup();}else{this.value='${esc(item.subcat||'')}';}}else{state.budgetItems[${i}].subcat=this.value;}" style="${selStyle}">${subcatSel}</select></td>
