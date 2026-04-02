@@ -1259,7 +1259,7 @@ function renderCategoryList(){
     <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--md-outline-variant);">
       <span style="font-size:18px;width:28px;text-align:center;">${CAT_EMOJIS[c]||'📦'}</span>
       <input class="field-input" style="flex:1;padding:8px 12px;" value="${esc(c)}" onchange="state.categories[${i}]=this.value;">
-      <button class="btn-icon" onclick="state.categories.splice(${i},1);renderCategoryList();">✕</button>
+      <button class="btn-icon" onclick="const rc=state.categories.splice(${i},1)[0];state.budgetItems=(state.budgetItems||[]).filter(b=>b.cat!==rc);renderCategoryList();renderBudgetSetup();">✕</button>
     </div>`).join('');
 }
 function addCategory(){state.categories.push('Yeni Kategori');renderCategoryList();}
@@ -1361,6 +1361,7 @@ function goStep(n){
   if(n>1){state.income=income;state.reserve=reserve;}
   document.querySelectorAll('.setup-step').forEach(s=>s.classList.remove('active'));
   document.getElementById(`step${n}`)?.classList.add('active');
+  if(n===3)renderBudgetSetup();
 }
 function finishSetup(){state.setupDone=true;state.transactions=state.transactions||[];saveState();showApp();}
 
