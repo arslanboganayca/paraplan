@@ -1698,10 +1698,11 @@ function populateSubcatSelect(selectId,cat,currentVal){
   const sel=document.getElementById(selectId);
   if(!sel)return;
   const opts=getSubcatsForCat(cat);
-  sel.innerHTML=opts.map(s=>`<option value="${esc(s)}"${currentVal===s?' selected':''}>${esc(s)}</option>`).join('')
+  sel.innerHTML=opts.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('')
     +`<option value="__new">+ Yeni alt kategori ekle...</option>`;
-  if(currentVal&&opts.includes(currentVal))sel.value=currentVal;
-  else if(opts.length)sel.value=opts[0];
+  // Restore existing value only if it belongs to the new category's options
+  if(currentVal && opts.includes(currentVal)) sel.value=currentVal;
+  else sel.selectedIndex=0; // always reset to first on category change
 }
 
 function handleSubcatSelect(prefix){
@@ -1730,12 +1731,11 @@ function getSubcatValue(prefix){
   return sel?.value||'';
 }
 
-function updateBmChips(){
+function updateBmChips(keepVal){
   const cat=document.getElementById('bm-cat')?.value;
   if(!cat)return;
-  const cur=document.getElementById('bm-subcat')?.value||'';
-  populateSubcatSelect('bm-subcat',cat,cur);
-  // hide new-input if visible
+  // keepVal only passed when restoring existing item; category change always resets
+  populateSubcatSelect('bm-subcat',cat,keepVal||'');
   const wrap=document.getElementById('bm-subcat-new');
   if(wrap)wrap.style.display='none';
 }
@@ -1789,7 +1789,7 @@ function openTxModal(editIdOrType){
     const tx=state.transactions.find(t=>t.id==editId);if(!tx)return;
     document.getElementById('tx-dialog-title').textContent='Harcamayı Düzenle';
     document.getElementById('tx-date').value=tx.date;
-    catEl.value=tx.cat;populateTxSubcat();
+    catEl.value=tx.cat;populateTxSubcat(tx.subcat);
     document.getElementById('tx-subcat').value=tx.subcat||'';
     document.getElementById('tx-person').value=tx.person;
     document.getElementById('tx-payment').value=tx.payment;
@@ -1820,11 +1820,11 @@ function updateTxSavingsHint(){
   if(hint)hint.style.display=cat==='Birikim'?'flex':'none';
 }
 
-function populateTxSubcat(){
+function populateTxSubcat(keepVal){
   const cat=document.getElementById('tx-cat')?.value||'';
   updateTxSavingsHint();
-  const cur=document.getElementById('tx-subcat')?.value||'';
-  populateSubcatSelect('tx-subcat',cat,cur);
+  // keepVal only passed when restoring an existing tx; category change always resets to first
+  populateSubcatSelect('tx-subcat',cat,keepVal||'');
   const wrap=document.getElementById('tx-subcat-new');
   if(wrap)wrap.style.display='none';
 }
