@@ -1581,7 +1581,6 @@ function renderBudgetPage(){
     const pColor=PERSON_HEX[pIdx]||'#64748B';
     const over=act>bud&&bud>0;
     const isSavings=item.cat==='Birikim';
-    const isPending=_pendingDeleteBudget===item.id;
     const isEditing=_inlineEditId==item.id;
 
     // History indicator: has this item been customised for any month beyond baseline?
@@ -1617,10 +1616,7 @@ function renderBudgetPage(){
       <td class="text-right text-mono" style="color:${over?'var(--md-error)':act>0?'var(--md-success)':'var(--md-on-surface-variant)'};">${act>0?'₺'+fmt(act):'—'}</td>
       <td class="text-right text-mono" style="color:${act>0?diff<0?'var(--md-error)':'var(--md-success)':'var(--md-on-surface-variant)'};">${act>0?(diff<0?'-':'+')+'₺'+fmt(Math.abs(diff)):'—'}</td>
       <td><button class="btn-icon" title="Kategori/kişi/tür düzenle" onclick="openEditBudgetModal('${item.id}')">⋮</button></td>
-      <td>${isPending
-        ?`<span class="confirm-inline"><button class="btn btn-danger-text btn-sm" onclick="confirmDeleteBudget('${item.id}')">Sil</button><button class="btn btn-text btn-sm" onclick="_pendingDeleteBudget=null;renderBudgetPage();">İptal</button></span>`
-        :`<button class="btn-icon" onclick="_pendingDeleteBudget='${item.id}';_inlineEditId=null;renderBudgetPage();" title="Sil">✕</button>`
-      }</td>
+      <td><button class="btn-icon" onclick="confirmDeleteBudget('${item.id}')" title="Sil">✕</button></td>
     </tr>`;
     prevCat=item.cat;
   });
@@ -1653,7 +1649,7 @@ function catTotalRow(cat,ct){
 
 function confirmDeleteBudget(id){
   state.budgetItems=state.budgetItems.filter(b=>b.id!=id);
-  _pendingDeleteBudget=null; _inlineEditId=null;
+  _inlineEditId=null;
   saveState();markDirty('dashboard','budget');renderBudgetPage();renderNavFooter();
   showSnack('Kalem silindi');
 }
