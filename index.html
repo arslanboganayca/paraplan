@@ -1318,22 +1318,19 @@ async function init(){
   window.addEventListener('offline',updateOfflineBanner);
   updateOfflineBanner();
 
-  // Auth state listener (handles OAuth redirect too)
+  // Supabase v2: onAuthStateChange fires INITIAL_SESSION on every page load.
+  // This handles both returning users and OAuth redirects — no separate getSession() needed.
   _sb.auth.onAuthStateChange(async (event, session) => {
-    if(session?.user){
-      await _onUserSession(session.user);
-    } else if(event==='SIGNED_OUT'){
+    if(event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      if(session?.user){
+        await _onUserSession(session.user);
+      } else {
+        showLoginScreen();
+      }
+    } else if(event === 'SIGNED_OUT'){
       showLoginScreen();
     }
   });
-
-  // Check existing session
-  const { data:{ session } } = await _sb.auth.getSession();
-  if(session?.user){
-    await _onUserSession(session.user);
-  } else {
-    showLoginScreen();
-  }
 }
 
 // ═══════════════════════════════════════════════════════
