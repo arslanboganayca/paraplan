@@ -489,7 +489,7 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
     <div class="setup-step" id="step3">
       <div class="setup-card" style="max-width:900px;margin:0 auto;">
         <div class="setup-headline">Bütçe Kalemleri</div>
-        <p class="setup-body">28 örnek kalem yüklendi. Tutarları ve türleri düzenleyin.</p>
+        <p class="setup-body">36 örnek kalem yüklendi (100k gelir, 15k birikim hedefi). Tutarları düzenleyin.</p>
         <div class="progress-stepper">
           <div class="step-dot done">✓</div><div class="step-line done"></div>
           <div class="step-dot done">✓</div><div class="step-line done"></div>
@@ -1140,107 +1140,124 @@ function initSetup(){
   const d=(day)=>`${y}-${mo}-${String(day).padStart(2,'0')}`;
   const fm=(off)=>{const fd=new Date(now.getFullYear(),now.getMonth()+off,1);return`${fd.getFullYear()}-${String(fd.getMonth()+1).padStart(2,'0')}`;};
 
-  state.persons=[{name:'Aile',id:'p0'},{name:'Kişi 1',id:'p1'},{name:'Kişi 2',id:'p2'}];
-  state.income=120000;state.reserve=250000;
+  state.persons=[{name:'Ortak',id:'p0'},{name:'Kişi 1',id:'p1'},{name:'Kişi 2',id:'p2'}];
+  state.income=100000;state.reserve=120000;
   state.categories=[
-    'Konut','Gıda','Sağlık','Spor','Hobi','Eğitim','Eğlence',
-    'Özel Gün','Seyahat','Dijital Abonelik','Teknoloji & Tasarım',
-    'Ulaşım','Kişisel','Destek','Yatırım','Birikim','Banka & Ödemeler','Diğer'
+    'Konut','Gıda','Ulaşım','Sağlık','Eğitim','Eğlence',
+    'Dijital Abonelik','Teknoloji & Tasarım','Kişisel','Spor',
+    'Destek','Birikim','Banka & Ödemeler','Özel Gün','Seyahat','Hobi'
   ];
 
   const bh=(n)=>[{from:'2000-01',amount:n}];
   state.budgetItems=[
-    // Konut
-    {id:1001,cat:'Konut',                subcat:'Kira',                  person:'Aile',   budget:110000,type:'fixed',   budgetHistory:bh(110000)},
-    {id:1002,cat:'Konut',                subcat:'Aidat',                 person:'Aile',   budget:14000, type:'fixed',   budgetHistory:bh(14000)},
-    {id:1003,cat:'Konut',                subcat:'Elektrik & Su',         person:'Aile',   budget:5000,  type:'fixed',   budgetHistory:bh(5000)},
-    {id:1004,cat:'Konut',                subcat:'İnternet',              person:'Aile',   budget:1500,  type:'fixed',   budgetHistory:bh(1500)},
-    // Gıda
-    {id:1005,cat:'Gıda',                 subcat:'Market',                person:'Aile',   budget:14000, type:'variable',budgetHistory:bh(14000)},
-    {id:1006,cat:'Gıda',                 subcat:'Süpermarket',           person:'Aile',   budget:3000,  type:'variable',budgetHistory:bh(3000)},
-    {id:1007,cat:'Gıda',                 subcat:'Manav',                 person:'Aile',   budget:2000,  type:'variable',budgetHistory:bh(2000)},
-    {id:10071,cat:'Gıda',                subcat:'Kasap',                 person:'Aile',   budget:1500,  type:'variable',budgetHistory:bh(1500)},
-    {id:10072,cat:'Gıda',                subcat:'Pazar',                 person:'Aile',   budget:1500,  type:'variable',budgetHistory:bh(1500)},
-    // Sağlık
-    {id:1008,cat:'Sağlık',               subcat:'Reçeteli İlaç',         person:'Kişi 1', budget:5000,  type:'fixed',   budgetHistory:bh(5000)},
-    {id:1009,cat:'Sağlık',               subcat:'Besin Takviyesi',       person:'Aile',   budget:2000,  type:'variable',budgetHistory:bh(2000)},
-    {id:1010,cat:'Sağlık',               subcat:'Eczane',                person:'Aile',   budget:1500,  type:'variable',budgetHistory:bh(1500)},
-    // Spor
-    {id:1011,cat:'Spor',                 subcat:'Kişisel Antrenör',      person:'Kişi 1', budget:7400,  type:'fixed',   budgetHistory:bh(7400)},
-    {id:1012,cat:'Spor',                 subcat:'Spor Lisansı',          person:'Kişi 2', budget:2000,  type:'fixed',   budgetHistory:bh(2000)},
-    {id:1013,cat:'Spor',                 subcat:'Spor Malzemesi',        person:'Aile',   budget:2500,  type:'variable',budgetHistory:bh(2500)},
-    // Hobi
-    {id:1014,cat:'Hobi',                 subcat:'Yaratıcı Atölye',       person:'Kişi 2', budget:4000,  type:'fixed',   budgetHistory:bh(4000)},
-    // Eğitim
-    {id:1015,cat:'Eğitim',               subcat:'Okul Taksiti',          person:'Kişi 1', budget:38000, type:'fixed',   budgetHistory:bh(38000)},
-    {id:1016,cat:'Eğitim',               subcat:'Okul Taksiti',          person:'Kişi 2', budget:100000,type:'fixed',   budgetHistory:bh(100000)},
-    // Eğlence
-    {id:1017,cat:'Eğlence',              subcat:'Online Kurs',           person:'Kişi 1', budget:2000,  type:'fixed',   budgetHistory:bh(2000)},
-    {id:1018,cat:'Eğlence',              subcat:'Dijital İçerik',        person:'Kişi 1', budget:2000,  type:'fixed',   budgetHistory:bh(2000)},
-    {id:1019,cat:'Eğlence',              subcat:'Dijital İçerik',        person:'Kişi 2', budget:2000,  type:'fixed',   budgetHistory:bh(2000)},
-    // Özel Gün
-    {id:1020,cat:'Özel Gün',             subcat:'Doğum Günü',            person:'Aile',   budget:20000, type:'variable',budgetHistory:bh(20000)},
-    {id:1021,cat:'Özel Gün',             subcat:'Kişisel Harcama',       person:'Kişi 1', budget:2200,  type:'variable',budgetHistory:bh(2200)},
-    {id:1022,cat:'Özel Gün',             subcat:'Kişisel Harcama',       person:'Kişi 2', budget:2200,  type:'variable',budgetHistory:bh(2200)},
-    // Seyahat
-    {id:1023,cat:'Seyahat',              subcat:'Feribot & Araç',        person:'Aile',   budget:3000,  type:'variable',budgetHistory:bh(3000)},
-    // Dijital Abonelik
-    {id:1024,cat:'Dijital Abonelik',     subcat:'Müzik Servisi',         person:'Aile',   budget:320,   type:'fixed',   budgetHistory:bh(320)},
-    {id:1025,cat:'Dijital Abonelik',     subcat:'Bulut Depolama',        person:'Kişi 1', budget:280,   type:'fixed',   budgetHistory:bh(280)},
-    {id:1026,cat:'Dijital Abonelik',     subcat:'Bulut Depolama',        person:'Kişi 2', budget:130,   type:'fixed',   budgetHistory:bh(130)},
-    {id:1027,cat:'Dijital Abonelik',     subcat:'Dosya Servisi',         person:'Aile',   budget:150,   type:'fixed',   budgetHistory:bh(150)},
-    {id:1028,cat:'Dijital Abonelik',     subcat:'Dizi/Film Platformu',   person:'Aile',   budget:250,   type:'fixed',   budgetHistory:bh(250)},
-    {id:1029,cat:'Dijital Abonelik',     subcat:'Dizi/Film Platformu',   person:'Kişi 2', budget:200,   type:'fixed',   budgetHistory:bh(200)},
-    // Teknoloji & Tasarım
-    {id:1030,cat:'Teknoloji & Tasarım',  subcat:'Tasarım Yazılımı',      person:'Kişi 1', budget:950,   type:'fixed',   budgetHistory:bh(950)},
-    {id:1031,cat:'Teknoloji & Tasarım',  subcat:'Ofis & İşbirliği',      person:'Kişi 1', budget:1000,  type:'fixed',   budgetHistory:bh(1000)},
-    {id:1032,cat:'Teknoloji & Tasarım',  subcat:'Geliştirici Araçları',  person:'Kişi 1', budget:800,   type:'fixed',   budgetHistory:bh(800)},
-    // Destek
-    {id:1033,cat:'Destek',               subcat:'Danışmanlık Hizmeti',   person:'Aile',   budget:7000,  type:'fixed',   budgetHistory:bh(7000)},
-    // Yatırım
-    {id:1034,cat:'Yatırım',              subcat:'Yatırım Fonu',          person:'Kişi 1', budget:5000,  type:'fixed',   budgetHistory:bh(5000)},
-    {id:1035,cat:'Yatırım',              subcat:'Yatırım Fonu',          person:'Kişi 2', budget:5000,  type:'fixed',   budgetHistory:bh(5000)},
-    {id:1036,cat:'Yatırım',              subcat:'Yatırım Hesabı',        person:'Aile',   budget:5000,  type:'fixed',   budgetHistory:bh(5000)},
-    // Birikim
-    {id:1037,cat:'Birikim',              subcat:'Eğitim Birikimi',       person:'Aile',   budget:5000,  type:'fixed',   budgetHistory:bh(5000)},
-    {id:1038,cat:'Birikim',              subcat:'Uzun Vadeli Birikim',   person:'Aile',   budget:5000,  type:'fixed',   budgetHistory:bh(5000)},
-    // Banka & Ödemeler
-    {id:1039,cat:'Banka & Ödemeler',     subcat:'Kredi Ödemesi',         person:'Aile',   budget:2500,  type:'fixed',   budgetHistory:bh(2500)},
+    // Konut — 28.000 ₺
+    {id:1001,cat:'Konut',               subcat:'Kira',                 person:'Ortak',  budget:20000, type:'fixed',   budgetHistory:bh(20000)},
+    {id:1002,cat:'Konut',               subcat:'Aidat',                person:'Ortak',  budget:2500,  type:'fixed',   budgetHistory:bh(2500)},
+    {id:1003,cat:'Konut',               subcat:'Elektrik & Su',        person:'Ortak',  budget:2500,  type:'fixed',   budgetHistory:bh(2500)},
+    {id:1004,cat:'Konut',               subcat:'Doğalgaz',             person:'Ortak',  budget:1500,  type:'fixed',   budgetHistory:bh(1500)},
+    {id:1005,cat:'Konut',               subcat:'İnternet',             person:'Ortak',  budget:600,   type:'fixed',   budgetHistory:bh(600)},
+    {id:1006,cat:'Konut',               subcat:'Temizlik',             person:'Ortak',  budget:900,   type:'variable',budgetHistory:bh(900)},
+    // Gıda — 12.000 ₺
+    {id:1007,cat:'Gıda',                subcat:'Market',               person:'Ortak',  budget:4500,  type:'variable',budgetHistory:bh(4500)},
+    {id:1008,cat:'Gıda',                subcat:'Manav',                person:'Ortak',  budget:2000,  type:'variable',budgetHistory:bh(2000)},
+    {id:1009,cat:'Gıda',                subcat:'Kasap',                person:'Ortak',  budget:2500,  type:'variable',budgetHistory:bh(2500)},
+    {id:1010,cat:'Gıda',                subcat:'Pazar',                person:'Ortak',  budget:1500,  type:'variable',budgetHistory:bh(1500)},
+    {id:1011,cat:'Gıda',                subcat:'Fırın',                person:'Ortak',  budget:500,   type:'variable',budgetHistory:bh(500)},
+    {id:1012,cat:'Gıda',                subcat:'Süpermarket',          person:'Ortak',  budget:1000,  type:'variable',budgetHistory:bh(1000)},
+    // Ulaşım — 5.500 ₺
+    {id:1013,cat:'Ulaşım',              subcat:'Akaryakıt',            person:'Ortak',  budget:3500,  type:'variable',budgetHistory:bh(3500)},
+    {id:1014,cat:'Ulaşım',              subcat:'Toplu Taşıma',         person:'Kişi 1', budget:1000,  type:'variable',budgetHistory:bh(1000)},
+    {id:1015,cat:'Ulaşım',              subcat:'Araç Bakımı',          person:'Ortak',  budget:1000,  type:'variable',budgetHistory:bh(1000)},
+    // Sağlık — 4.000 ₺
+    {id:1016,cat:'Sağlık',              subcat:'Reçeteli İlaç',        person:'Kişi 1', budget:1500,  type:'fixed',   budgetHistory:bh(1500)},
+    {id:1017,cat:'Sağlık',              subcat:'Eczane',               person:'Ortak',  budget:1500,  type:'variable',budgetHistory:bh(1500)},
+    {id:1018,cat:'Sağlık',              subcat:'Besin Takviyesi',      person:'Ortak',  budget:1000,  type:'variable',budgetHistory:bh(1000)},
+    // Eğitim — 8.000 ₺
+    {id:1019,cat:'Eğitim',              subcat:'Kurs/Dershane',        person:'Kişi 1', budget:5000,  type:'fixed',   budgetHistory:bh(5000)},
+    {id:1020,cat:'Eğitim',              subcat:'Dil Kursu',            person:'Kişi 2', budget:2000,  type:'fixed',   budgetHistory:bh(2000)},
+    {id:1021,cat:'Eğitim',              subcat:'Kitap/Kırtasiye',      person:'Ortak',  budget:1000,  type:'variable',budgetHistory:bh(1000)},
+    // Eğlence — 4.000 ₺
+    {id:1022,cat:'Eğlence',             subcat:'Yemek Dışarıda',       person:'Ortak',  budget:2500,  type:'variable',budgetHistory:bh(2500)},
+    {id:1023,cat:'Eğlence',             subcat:'Sinema/Tiyatro',       person:'Ortak',  budget:1000,  type:'variable',budgetHistory:bh(1000)},
+    {id:1024,cat:'Eğlence',             subcat:'Dijital İçerik',       person:'Ortak',  budget:500,   type:'fixed',   budgetHistory:bh(500)},
+    // Dijital Abonelik — 1.600 ₺
+    {id:1025,cat:'Dijital Abonelik',    subcat:'Dizi/Film Platformu',  person:'Ortak',  budget:600,   type:'fixed',   budgetHistory:bh(600)},
+    {id:1026,cat:'Dijital Abonelik',    subcat:'Müzik Servisi',        person:'Ortak',  budget:350,   type:'fixed',   budgetHistory:bh(350)},
+    {id:1027,cat:'Dijital Abonelik',    subcat:'Bulut Depolama',       person:'Kişi 1', budget:300,   type:'fixed',   budgetHistory:bh(300)},
+    {id:1028,cat:'Dijital Abonelik',    subcat:'Oyun Servisi',         person:'Kişi 2', budget:350,   type:'fixed',   budgetHistory:bh(350)},
+    // Teknoloji & Tasarım — 2.000 ₺
+    {id:1029,cat:'Teknoloji & Tasarım', subcat:'Tasarım Yazılımı',     person:'Kişi 1', budget:900,   type:'fixed',   budgetHistory:bh(900)},
+    {id:1030,cat:'Teknoloji & Tasarım', subcat:'Ofis & İşbirliği',     person:'Kişi 1', budget:600,   type:'fixed',   budgetHistory:bh(600)},
+    {id:1031,cat:'Teknoloji & Tasarım', subcat:'Geliştirici Araçları', person:'Kişi 1', budget:500,   type:'fixed',   budgetHistory:bh(500)},
+    // Kişisel — 6.000 ₺
+    {id:1032,cat:'Kişisel',             subcat:'Giyim',                person:'Ortak',  budget:2500,  type:'variable',budgetHistory:bh(2500)},
+    {id:1033,cat:'Kişisel',             subcat:'Kozmetik/Bakım',       person:'Kişi 2', budget:1500,  type:'variable',budgetHistory:bh(1500)},
+    {id:1034,cat:'Kişisel',             subcat:'Kuaför/Berber',        person:'Ortak',  budget:1500,  type:'variable',budgetHistory:bh(1500)},
+    {id:1035,cat:'Kişisel',             subcat:'Cep Harçlığı',         person:'Kişi 1', budget:500,   type:'variable',budgetHistory:bh(500)},
+    // Spor — 2.500 ₺
+    {id:1036,cat:'Spor',                subcat:'Spor Kulübü Üyeliği',  person:'Ortak',  budget:2000,  type:'fixed',   budgetHistory:bh(2000)},
+    {id:1037,cat:'Spor',                subcat:'Spor Malzemesi',       person:'Ortak',  budget:500,   type:'variable',budgetHistory:bh(500)},
+    // Destek — 3.000 ₺
+    {id:1038,cat:'Destek',              subcat:'Aile Yardımı',         person:'Ortak',  budget:3000,  type:'fixed',   budgetHistory:bh(3000)},
+    // Banka & Ödemeler — 5.000 ₺
+    {id:1039,cat:'Banka & Ödemeler',    subcat:'Kredi Ödemesi',        person:'Ortak',  budget:5000,  type:'fixed',   budgetHistory:bh(5000)},
+    // Birikim — 15.000 ₺ (hedef)
+    {id:1040,cat:'Birikim',             subcat:'Acil Fon',             person:'Ortak',  budget:7000,  type:'fixed',   budgetHistory:bh(7000)},
+    {id:1041,cat:'Birikim',             subcat:'Uzun Vadeli Birikim',  person:'Ortak',  budget:5000,  type:'fixed',   budgetHistory:bh(5000)},
+    {id:1042,cat:'Birikim',             subcat:'Emeklilik',            person:'Ortak',  budget:3000,  type:'fixed',   budgetHistory:bh(3000)},
   ];
+  // Toplam bütçe: ~96.600 ₺  |  Birikim: 15.000 ₺  |  Harcama: ~81.600 ₺
 
   state.transactions=[
-    {id:2001,date:d(1), cat:'Konut',                subcat:'Kira',                 person:'Aile',   payment:'Havale',         amount:110000,note:'Aylık kira'},
-    {id:2002,date:d(1), cat:'Konut',                subcat:'Aidat',                person:'Aile',   payment:'Havale',         amount:14000, note:''},
-    {id:2003,date:d(2), cat:'Konut',                subcat:'Elektrik & Su',        person:'Aile',   payment:'Otomatik Ödeme', amount:4800,  note:''},
-    {id:2004,date:d(2), cat:'Konut',                subcat:'İnternet',             person:'Aile',   payment:'Otomatik Ödeme', amount:1500,  note:''},
-    {id:2005,date:d(3), cat:'Gıda',                 subcat:'Market',               person:'Aile',   payment:'Kredi Kartı',    amount:3500,  note:'Haftalık market'},
-    {id:2006,date:d(5), cat:'Sağlık',               subcat:'Reçeteli İlaç',        person:'Kişi 1', payment:'Eczane/Nakit',   amount:1000,  note:''},
-    {id:2007,date:d(6), cat:'Sağlık',               subcat:'Besin Takviyesi',      person:'Aile',   payment:'Online',         amount:1200,  note:''},
-    {id:2008,date:d(7), cat:'Spor',                 subcat:'Kişisel Antrenör',     person:'Kişi 1', payment:'Havale',         amount:7400,  note:'Aylık antrenör'},
-    {id:2009,date:d(8), cat:'Eğitim',               subcat:'Okul Taksiti',         person:'Kişi 1', payment:'Havale',         amount:38000, note:'Aylık taksit'},
-    {id:2010,date:d(9), cat:'Eğitim',               subcat:'Okul Taksiti',         person:'Kişi 2', payment:'Havale',         amount:39000, note:'Aylık taksit'},
-    {id:2011,date:d(10),cat:'Gıda',                 subcat:'Market',               person:'Aile',   payment:'Kredi Kartı',    amount:2800,  note:''},
-    {id:2012,date:d(11),cat:'Gıda',                 subcat:'Manav',                person:'Aile',   payment:'Nakit',          amount:800,   note:''},
-    {id:20121,date:d(13),cat:'Gıda',               subcat:'Pazar',                person:'Aile',   payment:'Nakit',          amount:600,   note:'Haftalık pazar'},
-    {id:2013,date:d(12),cat:'Eğlence',              subcat:'Online Kurs',          person:'Kişi 1', payment:'Kredi Kartı',    amount:0,     note:'Bu ay kullanılmadı'},
-    {id:2014,date:d(13),cat:'Dijital Abonelik',     subcat:'Müzik Servisi',        person:'Aile',   payment:'Otomatik Ödeme', amount:319,   note:''},
-    {id:2015,date:d(13),cat:'Dijital Abonelik',     subcat:'Bulut Depolama',       person:'Kişi 1', payment:'Otomatik Ödeme', amount:278,   note:''},
-    {id:2016,date:d(13),cat:'Dijital Abonelik',     subcat:'Bulut Depolama',       person:'Kişi 2', payment:'Otomatik Ödeme', amount:130,   note:''},
-    {id:2017,date:d(13),cat:'Dijital Abonelik',     subcat:'Dizi/Film Platformu',  person:'Aile',   payment:'Otomatik Ödeme', amount:250,   note:''},
-    {id:2018,date:d(14),cat:'Teknoloji & Tasarım',  subcat:'Tasarım Yazılımı',     person:'Kişi 1', payment:'Kredi Kartı',    amount:950,   note:''},
-    {id:2019,date:d(14),cat:'Teknoloji & Tasarım',  subcat:'Ofis & İşbirliği',     person:'Kişi 1', payment:'Kredi Kartı',    amount:1000,  note:''},
-    {id:2020,date:d(15),cat:'Destek',               subcat:'Danışmanlık Hizmeti',  person:'Aile',   payment:'Havale',         amount:7000,  note:'Aylık danışmanlık'},
-    {id:2021,date:d(17),cat:'Seyahat',              subcat:'Feribot & Araç',       person:'Aile',   payment:'Kredi Kartı',    amount:3000,  note:''},
-    {id:2022,date:d(18),cat:'Yatırım',              subcat:'Yatırım Fonu',         person:'Kişi 1', payment:'Havale',         amount:5000,  note:'Aylık yatırım'},
-    {id:2023,date:d(18),cat:'Yatırım',              subcat:'Yatırım Fonu',         person:'Kişi 2', payment:'Havale',         amount:5000,  note:''},
-    {id:2024,date:d(19),cat:'Birikim',              subcat:'Eğitim Birikimi',      person:'Aile',   payment:'Havale',         amount:5000,  note:'Aylık birikim'},
-    {id:2025,date:d(20),cat:'Banka & Ödemeler',     subcat:'Kredi Ödemesi',        person:'Aile',   payment:'Otomatik Ödeme', amount:2500,  note:''},
-    {id:2026,date:d(22),cat:'Hobi',                 subcat:'Yaratıcı Atölye',      person:'Kişi 2', payment:'Havale',         amount:4000,  note:'Aylık ders'},
+    // Konut — ay başı sabit ödemeler
+    {id:2001,date:d(1), cat:'Konut',               subcat:'Kira',                person:'Ortak',  payment:'Havale',         amount:20000, note:'Aylık kira'},
+    {id:2002,date:d(1), cat:'Konut',               subcat:'Aidat',               person:'Ortak',  payment:'Havale',         amount:2500,  note:''},
+    {id:2003,date:d(2), cat:'Konut',               subcat:'Elektrik & Su',       person:'Ortak',  payment:'Otomatik Ödeme', amount:2320,  note:''},
+    {id:2004,date:d(2), cat:'Konut',               subcat:'Doğalgaz',            person:'Ortak',  payment:'Otomatik Ödeme', amount:1480,  note:''},
+    {id:2005,date:d(3), cat:'Konut',               subcat:'İnternet',            person:'Ortak',  payment:'Otomatik Ödeme', amount:600,   note:''},
+    // Birikim — ay başı otomatik transfer
+    {id:2006,date:d(1), cat:'Birikim',             subcat:'Acil Fon',            person:'Ortak',  payment:'Havale',         amount:7000,  note:'Aylık birikim transferi'},
+    {id:2007,date:d(1), cat:'Birikim',             subcat:'Uzun Vadeli Birikim', person:'Ortak',  payment:'Havale',         amount:5000,  note:''},
+    {id:2008,date:d(1), cat:'Birikim',             subcat:'Emeklilik',           person:'Ortak',  payment:'Havale',         amount:3000,  note:''},
+    // Banka
+    {id:2009,date:d(5), cat:'Banka & Ödemeler',   subcat:'Kredi Ödemesi',       person:'Ortak',  payment:'Otomatik Ödeme', amount:5000,  note:''},
+    // Eğitim — sabit ödemeler
+    {id:2010,date:d(3), cat:'Eğitim',              subcat:'Kurs/Dershane',       person:'Kişi 1', payment:'Havale',         amount:5000,  note:'Aylık kurs'},
+    {id:2011,date:d(4), cat:'Eğitim',              subcat:'Dil Kursu',           person:'Kişi 2', payment:'Havale',         amount:2000,  note:''},
+    // Spor & Destek
+    {id:2012,date:d(2), cat:'Spor',                subcat:'Spor Kulübü Üyeliği', person:'Ortak', payment:'Havale',         amount:2000,  note:'Aylık üyelik'},
+    {id:2013,date:d(5), cat:'Destek',              subcat:'Aile Yardımı',        person:'Ortak',  payment:'Havale',         amount:3000,  note:''},
+    // Dijital Abonelikler
+    {id:2014,date:d(3), cat:'Dijital Abonelik',    subcat:'Dizi/Film Platformu', person:'Ortak',  payment:'Otomatik Ödeme', amount:599,   note:''},
+    {id:2015,date:d(3), cat:'Dijital Abonelik',    subcat:'Müzik Servisi',       person:'Ortak',  payment:'Otomatik Ödeme', amount:349,   note:''},
+    {id:2016,date:d(3), cat:'Dijital Abonelik',    subcat:'Bulut Depolama',      person:'Kişi 1', payment:'Otomatik Ödeme', amount:299,   note:''},
+    // Teknoloji
+    {id:2017,date:d(3), cat:'Teknoloji & Tasarım', subcat:'Tasarım Yazılımı',    person:'Kişi 1', payment:'Kredi Kartı',    amount:899,   note:''},
+    {id:2018,date:d(3), cat:'Teknoloji & Tasarım', subcat:'Ofis & İşbirliği',    person:'Kişi 1', payment:'Kredi Kartı',    amount:599,   note:''},
+    // Sağlık
+    {id:2019,date:d(4), cat:'Sağlık',              subcat:'Reçeteli İlaç',       person:'Kişi 1', payment:'Kredi Kartı',    amount:1450,  note:''},
+    {id:2020,date:d(9), cat:'Sağlık',              subcat:'Eczane',              person:'Ortak',  payment:'Nakit',          amount:680,   note:''},
+    // Gıda — değişken harcamalar
+    {id:2021,date:d(5), cat:'Gıda',                subcat:'Market',              person:'Ortak',  payment:'Kredi Kartı',    amount:2800,  note:'Haftalık market'},
+    {id:2022,date:d(6), cat:'Gıda',                subcat:'Manav',               person:'Ortak',  payment:'Nakit',          amount:800,   note:''},
+    {id:2023,date:d(8), cat:'Gıda',                subcat:'Kasap',               person:'Ortak',  payment:'Nakit',          amount:1200,  note:'Aylık et alışverişi'},
+    {id:2024,date:d(12),cat:'Gıda',                subcat:'Market',              person:'Ortak',  payment:'Kredi Kartı',    amount:1900,  note:''},
+    {id:2025,date:d(13),cat:'Gıda',                subcat:'Pazar',               person:'Ortak',  payment:'Nakit',          amount:700,   note:'Haftalık pazar'},
+    {id:2026,date:d(16),cat:'Gıda',                subcat:'Fırın',               person:'Ortak',  payment:'Nakit',          amount:300,   note:''},
+    // Ulaşım
+    {id:2027,date:d(7), cat:'Ulaşım',              subcat:'Akaryakıt',           person:'Ortak',  payment:'Kredi Kartı',    amount:1800,  note:''},
+    {id:2028,date:d(9), cat:'Ulaşım',              subcat:'Toplu Taşıma',        person:'Kişi 1', payment:'Nakit',          amount:400,   note:''},
+    {id:2029,date:d(15),cat:'Ulaşım',              subcat:'Akaryakıt',           person:'Ortak',  payment:'Kredi Kartı',    amount:1600,  note:''},
+    // Eğlence & Kişisel
+    {id:2030,date:d(10),cat:'Eğlence',             subcat:'Yemek Dışarıda',      person:'Ortak',  payment:'Kredi Kartı',    amount:1250,  note:''},
+    {id:2031,date:d(14),cat:'Eğlence',             subcat:'Sinema/Tiyatro',      person:'Ortak',  payment:'Kredi Kartı',    amount:480,   note:''},
+    {id:2032,date:d(11),cat:'Kişisel',             subcat:'Kuaför/Berber',       person:'Ortak',  payment:'Nakit',          amount:800,   note:''},
+    {id:2033,date:d(16),cat:'Kişisel',             subcat:'Giyim',               person:'Ortak',  payment:'Kredi Kartı',    amount:1490,  note:'Sezon alışverişi'},
   ];
 
   state.milestones=[
-    {id:3001,desc:'Maaş/gelir artışı',            month:fm(3), amount:15000,type:'income_increase'},
-    {id:3002,desc:'Okul taksiti bitiyor (Kişi 1)',month:fm(8), amount:38000,type:'expense_decrease'},
+    {id:3001,desc:'Maaş artışı bekleniyor',     month:fm(4), amount:10000,type:'income_increase'},
+    {id:3002,desc:'Kredi ödemesi bitiyor',       month:fm(10),amount:5000, type:'expense_decrease'},
   ];
 
   const si=document.getElementById('s-income');const sr=document.getElementById('s-reserve');
