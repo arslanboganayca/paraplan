@@ -1622,14 +1622,34 @@ function updateMsHelper(helperId,amountId,typeId){
 }
 
 function goStep(n){
-  const income=+document.getElementById('s-income')?.value||state.income;
-  const reserve=+document.getElementById('s-reserve')?.value||state.reserve;
-  if(n>1){state.income=income;state.reserve=reserve;}
+  // Always flush current step data to state before navigating
+  const si=document.getElementById('s-income');
+  const sr=document.getElementById('s-reserve');
+  if(si&&+si.value>0) state.income=+si.value;
+  if(sr&&+sr.value>=0) state.reserve=+sr.value;
+  // Flush person names
+  document.querySelectorAll('#person-list input.field-input').forEach((inp,i)=>{
+    if(state.persons[i]&&inp.value.trim()) state.persons[i].name=inp.value.trim();
+  });
   document.querySelectorAll('.setup-step').forEach(s=>s.classList.remove('active'));
   document.getElementById(`step${n}`)?.classList.add('active');
   if(n===3)renderBudgetSetup();
 }
-function finishSetup(){state.setupDone=true;state.transactions=state.transactions||[];saveState();showApp();}
+function finishSetup(){
+  // Flush any uncommitted DOM values before saving
+  const si=document.getElementById('s-income');
+  const sr=document.getElementById('s-reserve');
+  if(si&&+si.value>0) state.income=+si.value;
+  if(sr&&+sr.value>=0) state.reserve=+sr.value;
+  // Flush person name inputs
+  document.querySelectorAll('#person-list input.field-input').forEach((inp,i)=>{
+    if(state.persons[i]&&inp.value.trim()) state.persons[i].name=inp.value.trim();
+  });
+  state.setupDone=true;
+  state.transactions=state.transactions||[];
+  saveState();
+  showApp();
+}
 
 // ═══════════════════════════════════════════════════════
 // APP SHELL
@@ -2435,8 +2455,12 @@ function restartSetupWizard(){
   document.getElementById('fab-wrap').style.display='none';
   document.getElementById('bottom-nav').style.display='none';
   document.getElementById('onboarding').style.display='flex';
+  // Populate inputs with current state values (not sample defaults)
+  const si=document.getElementById('s-income');const sr=document.getElementById('s-reserve');
+  if(si) si.value=state.income;if(sr) sr.value=state.reserve;
   renderPersonList();renderCategoryList();renderBudgetSetup();renderMilestoneSetup();
-  goStep(1);
+  document.querySelectorAll('.setup-step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('step1')?.classList.add('active');
 }
 
 // ═══════════════════════════════════════════════════════
