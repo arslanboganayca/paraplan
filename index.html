@@ -1057,15 +1057,15 @@ async function loadStateFromSupabase(user) {
       .from('user_budget')
       .select('state')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();  // returns null instead of error when no row found
     if (data && !error) {
       state = migrateState(data.state);
-      // Sync to localStorage cache
       try { localStorage.setItem('budget-v6', JSON.stringify(state)); } catch(e){}
       return true;
     }
-  } catch(e){}
-  // New user — try local cache then give up (show onboarding)
+    console.log('[Supabase] No cloud data for user, checking local cache');
+  } catch(e){ console.warn('[Supabase] Load error:', e); }
+  // New user — try local cache then show onboarding
   return loadStateLocal();
 }
 
@@ -1261,9 +1261,10 @@ function updateNavUser(user){
 }
 
 async function signInWithGoogle(){
+  showLoginError('Google\'a yönlendiriliyorsunuz...', true);
   const { error } = await _sb.auth.signInWithOAuth({
     provider:'google',
-    options:{ redirectTo: window.location.href }
+    options:{ redirectTo: window.location.origin + '/' }
   });
   if(error) showLoginError(error.message);
 }
@@ -1290,19 +1291,31 @@ function showLoginError(msg, isInfo=false){
   el.style.color=isInfo?'var(--md-on-primary-container)':'var(--md-on-error-container)';
 }
 async function signOutUser(){
+  _sessionHandled = false;
   await _sb.auth.signOut();
   _sbUser=null;
   try{ localStorage.removeItem('budget-v6'); }catch(e){}
   showLoginScreen();
 }
 
+let _sessionHandled = false;
 async function _onUserSession(user){
-  _sbUser=user;
+  if(_sessionHandled && _sbUser?.id === user.id) return;
+  _sessionHandled = true;
+  _sbUser = user;
   updateNavUser(user);
   hideLoginScreen();
-  const loaded=await loadStateFromSupabase(user);
-  if(loaded&&state.setupDone) showApp();
-  else{ initSetup(); document.getElementById('onboarding').style.display='flex'; }
+  try {
+    const loaded = await loadStateFromSupabase(user);
+    if(loaded && state.setupDone) showApp();
+    else { initSetup(); document.getElementById('onboarding').style.display='flex'; }
+  } catch(err) {
+    console.error('Session init error:', err);
+    // Fallback: try local state
+    loadStateLocal();
+    if(state.setupDone) showApp();
+    else { initSetup(); document.getElementById('onboarding').style.display='flex'; }
+  }
 }
 
 async function init(){
@@ -1319,15 +1332,17 @@ async function init(){
   updateOfflineBanner();
 
   // Supabase v2: onAuthStateChange fires INITIAL_SESSION on every page load.
-  // This handles both returning users and OAuth redirects — no separate getSession() needed.
+  // Handles both returning users and OAuth redirects — no separate getSession() needed.
   _sb.auth.onAuthStateChange(async (event, session) => {
+    console.log('[Auth]', event, session?.user?.email ?? 'no user');
     if(event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
       if(session?.user){
         await _onUserSession(session.user);
-      } else {
+      } else if(!_sessionHandled) {
         showLoginScreen();
       }
     } else if(event === 'SIGNED_OUT'){
+      _sessionHandled = false;
       showLoginScreen();
     }
   });
