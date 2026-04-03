@@ -834,7 +834,7 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
 // ═══════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 const AV_CLASSES = ['av0','av1','av2','av3','av4'];
 const PERSON_HEX  = ['#006A6A','#4A6363','#4B607C','#795900','#BA1A1A'];
 const CAT_COLORS  = ['#006A6A','#4A6363','#795900','#4B607C','#BA1A1A','#0891B2','#DB2777','#16A34A','#EA580C','#64748B','#7C3AED','#854D0E'];
@@ -923,11 +923,18 @@ const _dirty = new Set(['dashboard','budget','transactions','projection','settin
 // MIGRATION
 // ═══════════════════════════════════════════════════════
 function migrateState(s) {
+  // v6: sample data completely restructured — force re-onboarding for old sample sessions
+  if ((s.schemaVersion||0) < 6 && s.setupDone) {
+    // Only reset if user hasn't entered any real transactions beyond the sample set
+    const hasRealData = (s.transactions||[]).some(t => t.id > 9000);
+    if (!hasRealData) {
+      s.setupDone = false;
+    }
+  }
   s.extraIncome = s.extraIncome || [];
   (s.budgetItems||[]).forEach(b => {
     if (!b.type) b.type = 'variable';
     if (!b.id)   b.id   = Date.now() + Math.random();
-    // v5: add budgetHistory if missing — baseline from epoch covers all past months
     if (!b.budgetHistory) b.budgetHistory = [{from:'2000-01', amount: b.budget||0}];
   });
   (s.milestones||[]).forEach(m => { if (!MS_TYPES[m.type]) m.type='expense_decrease'; });
