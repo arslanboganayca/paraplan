@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aile Bütçe Planlayıcısı</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Serif:wght@400;600&display=swap" rel="stylesheet">
 <style>
@@ -375,9 +376,78 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
   .bnav-lbl{display:none;}
   .bnav-pill{width:56px;height:32px;}
 }
+/* ── LOGIN SCREEN ── */
+#login-screen{
+  display:none;position:fixed;inset:0;z-index:9999;
+  background:var(--md-surface-dim);
+  display:flex;align-items:center;justify-content:center;padding:24px;
+}
+.login-card{
+  background:var(--md-surface-container-low);
+  border-radius:var(--shape-xl);
+  padding:40px 36px;width:100%;max-width:400px;
+  box-shadow:var(--shadow-3);text-align:center;
+}
+.login-logo{font-size:48px;margin-bottom:12px;}
+.login-title{font-family:'Roboto Serif',serif;font-size:26px;font-weight:600;
+  color:var(--md-on-surface);margin:0 0 8px;}
+.login-sub{font-size:14px;color:var(--md-on-surface-variant);margin:0 0 32px;}
+.btn-google{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  width:100%;padding:14px 20px;border-radius:var(--shape-full);
+  border:1.5px solid var(--md-outline-variant);background:var(--md-surface);
+  font-size:15px;font-weight:500;color:var(--md-on-surface);cursor:pointer;
+  transition:background .15s,box-shadow .15s;margin-bottom:16px;
+}
+.btn-google:hover{background:var(--md-surface-container);box-shadow:var(--shadow-1);}
+.btn-google svg{flex-shrink:0;}
+.login-divider{display:flex;align-items:center;gap:12px;margin:20px 0;
+  color:var(--md-on-surface-variant);font-size:12px;}
+.login-divider::before,.login-divider::after{content:'';flex:1;
+  height:1px;background:var(--md-outline-variant);}
+.login-email-form{display:flex;flex-direction:column;gap:10px;text-align:left;}
+.login-error{background:var(--md-error-container);color:var(--md-on-error-container);
+  padding:10px 14px;border-radius:var(--shape-sm);font-size:13px;}
+.login-switch{font-size:13px;color:var(--md-on-surface-variant);margin-top:8px;text-align:center;}
+.login-switch button{background:none;border:none;color:var(--md-primary);
+  cursor:pointer;font-size:13px;font-weight:500;padding:0;}
+/* user avatar in nav */
+.nav-user{display:flex;align-items:center;gap:10px;padding:12px 16px;
+  border-top:1px solid var(--md-outline-variant);margin-top:8px;}
+.nav-user-avatar{width:34px;height:34px;border-radius:50%;
+  background:var(--md-primary-container);display:flex;align-items:center;
+  justify-content:center;font-size:14px;font-weight:600;
+  color:var(--md-on-primary-container);flex-shrink:0;overflow:hidden;}
+.nav-user-avatar img{width:100%;height:100%;object-fit:cover;}
+.nav-user-info{flex:1;min-width:0;}
+.nav-user-name{font-size:13px;font-weight:500;color:var(--md-on-surface);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nav-user-email{font-size:11px;color:var(--md-on-surface-variant);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 </style>
 </head>
 <body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">💰</div>
+    <h1 class="login-title">Aile Bütçe<br>Planlayıcısı</h1>
+    <p class="login-sub">Finansal hedeflerinizi takip edin</p>
+    <button class="btn-google" onclick="signInWithGoogle()">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.859-3.048.859-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.706c-.18-.54-.282-1.117-.282-1.706s.102-1.166.282-1.706V4.962H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.038l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.962L3.964 7.294C4.672 5.167 6.656 3.58 9 3.58z"/></svg>
+      Google ile Giriş Yap
+    </button>
+    <div class="login-divider"><span>veya e-posta ile</span></div>
+    <div class="login-email-form">
+      <input type="email" id="login-email" class="field-input" placeholder="E-posta adresi">
+      <input type="password" id="login-password" class="field-input" placeholder="Şifre (min. 6 karakter)">
+      <div id="login-error" class="login-error" style="display:none;"></div>
+      <button class="btn btn-filled w100" onclick="signInWithEmail()">Giriş Yap</button>
+      <div class="login-switch">Hesabın yok mu? <button onclick="signUpWithEmail()">Kayıt ol</button></div>
+    </div>
+  </div>
+</div>
 
 <!-- OFFLINE BANNER -->
 <div id="offline-banner">📵 İnternet bağlantısı yok — veriler yerel olarak saklanıyor</div>
@@ -581,6 +651,14 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
       <div class="nav-footer-row"><span>Toplam bütçe</span><span class="nav-footer-val" id="sb-budget">—</span></div>
       <div class="nav-footer-row"><span>Fark</span><span class="nav-footer-val" id="sb-deficit">—</span></div>
     </div>
+    <div class="nav-user" id="nav-user-area" style="display:none;">
+      <div class="nav-user-avatar" id="nav-user-avatar"></div>
+      <div class="nav-user-info">
+        <div class="nav-user-name" id="nav-user-name"></div>
+        <div class="nav-user-email" id="nav-user-email"></div>
+      </div>
+      <button class="btn-icon" title="Çıkış yap" onclick="signOutUser()" style="color:var(--md-on-surface-variant)">⏏</button>
+    </div>
   </nav>
 
   <!-- MAIN CONTENT -->
@@ -711,6 +789,11 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
         <button class="btn btn-text btn-sm mt8" onclick="addCatSetting()">+ Kategori ekle</button>
       </div>
       <div class="card-outlined mb16">
+        <div class="section-title">Hesap</div>
+        <p class="text-sm mb16" id="settings-user-info">Giriş yapılmadı.</p>
+        <button class="btn btn-outlined btn-sm" onclick="signOutUser()">⏏ Çıkış Yap</button>
+      </div>
+      <div class="card-outlined mb16">
         <div class="section-title">Kurulum Sihirbazı</div>
         <p class="text-sm mb16">Mevcut verileriniz korunur. Kategoriler ve bütçe kalemlerini adım adım gözden geçirebilirsiniz.</p>
         <button class="btn btn-outlined btn-sm" onclick="restartSetupWizard()">⚙️ Kurulumu Yeniden Aç</button>
@@ -832,6 +915,14 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
 <script>
 'use strict';
 // ═══════════════════════════════════════════════════════
+// SUPABASE
+// ═══════════════════════════════════════════════════════
+const _SB_URL = 'https://lnjbruvhnahqvbtftuxw.supabase.co';
+const _SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxuamJydXZobmFocXZidGZ0dXh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNDUyODQsImV4cCI6MjA5MDgyMTI4NH0.Ec3fduRzf8bhrpvkWqDeyZtOv8XnNgH3b7dov0ndtNE';
+const _sb = supabase.createClient(_SB_URL, _SB_KEY);
+let _sbUser = null; // currently signed-in user
+
+// ═══════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════
 const SCHEMA_VERSION = 6;
@@ -946,25 +1037,51 @@ function migrateState(s) {
 // STORAGE
 // ═══════════════════════════════════════════════════════
 async function saveState() {
+  // Always save to localStorage as offline cache
+  try { localStorage.setItem('budget-v6', JSON.stringify(state)); } catch(e){}
+  // Save to Supabase if logged in
+  if (_sbUser) {
+    try {
+      await _sb.from('user_budget').upsert({
+        user_id: _sbUser.id,
+        state: state,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' });
+    } catch(e){ console.warn('Supabase save error', e); }
+  }
+}
+
+async function loadStateFromSupabase(user) {
   try {
-    const d = JSON.stringify(state);
-    if (window.storage) await window.storage.set('budget-v4', d);
-    else localStorage.setItem('budget-v4', d);
-  } catch(e) { try { localStorage.setItem('budget-v4', JSON.stringify(state)); } catch(e2){} }
+    const { data, error } = await _sb
+      .from('user_budget')
+      .select('state')
+      .eq('user_id', user.id)
+      .single();
+    if (data && !error) {
+      state = migrateState(data.state);
+      // Sync to localStorage cache
+      try { localStorage.setItem('budget-v6', JSON.stringify(state)); } catch(e){}
+      return true;
+    }
+  } catch(e){}
+  // New user — try local cache then give up (show onboarding)
+  return loadStateLocal();
+}
+
+function loadStateLocal() {
+  try {
+    const keys = ['budget-v6','budget-v4','budget-app-v3','budget-app-state'];
+    for (const k of keys) {
+      const d = localStorage.getItem(k);
+      if (d) { state = migrateState(JSON.parse(d)); return true; }
+    }
+  } catch(e){}
+  return false;
 }
 
 async function loadState() {
-  try {
-    let data = null;
-    const keys = ['budget-v4','budget-app-v3','budget-app-state'];
-    for (const k of keys) {
-      if (!data && window.storage) { const r = await window.storage.get(k); if(r) data=r.value; }
-      if (!data) data = localStorage.getItem(k);
-      if (data) break;
-    }
-    if (data) { state = migrateState(JSON.parse(data)); return true; }
-  } catch(e){}
-  return false;
+  return loadStateLocal();
 }
 
 function debounce(fn,ms=350){ let t; return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);}; }
@@ -1120,13 +1237,80 @@ function resetMonth(){
 // ═══════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════
+function showLoginScreen(){
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('onboarding').style.display='none';
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('fab-wrap').style.display='none';
+  document.getElementById('bottom-nav').style.display='none';
+}
+function hideLoginScreen(){
+  document.getElementById('login-screen').style.display='none';
+}
+function updateNavUser(user){
+  if(!user){ document.getElementById('nav-user-area').style.display='none'; return; }
+  document.getElementById('nav-user-area').style.display='flex';
+  const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Kullanıcı';
+  const email = user.email || '';
+  const pic = user.user_metadata?.avatar_url || '';
+  document.getElementById('nav-user-name').textContent = name;
+  document.getElementById('nav-user-email').textContent = email;
+  const av = document.getElementById('nav-user-avatar');
+  if(pic){ av.innerHTML=`<img src="${pic}" alt="">`; }
+  else { av.textContent = name.slice(0,2).toUpperCase(); }
+}
+
+async function signInWithGoogle(){
+  const { error } = await _sb.auth.signInWithOAuth({
+    provider:'google',
+    options:{ redirectTo: window.location.href }
+  });
+  if(error) showLoginError(error.message);
+}
+async function signInWithEmail(){
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-password').value;
+  if(!email||!pass){ showLoginError('E-posta ve şifre gerekli'); return; }
+  const { error } = await _sb.auth.signInWithPassword({ email, password:pass });
+  if(error) showLoginError(error.message);
+}
+async function signUpWithEmail(){
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-password').value;
+  if(!email||!pass){ showLoginError('E-posta ve şifre gerekli'); return; }
+  if(pass.length<6){ showLoginError('Şifre en az 6 karakter olmalı'); return; }
+  const { error } = await _sb.auth.signUp({ email, password:pass });
+  if(error) showLoginError(error.message);
+  else showLoginError('Doğrulama e-postası gönderildi — gelen kutunuzu kontrol edin ✉️', true);
+}
+function showLoginError(msg, isInfo=false){
+  const el=document.getElementById('login-error');
+  el.textContent=msg; el.style.display='block';
+  el.style.background=isInfo?'var(--md-primary-container)':'var(--md-error-container)';
+  el.style.color=isInfo?'var(--md-on-primary-container)':'var(--md-on-error-container)';
+}
+async function signOutUser(){
+  await _sb.auth.signOut();
+  _sbUser=null;
+  try{ localStorage.removeItem('budget-v6'); }catch(e){}
+  showLoginScreen();
+}
+
+async function _onUserSession(user){
+  _sbUser=user;
+  updateNavUser(user);
+  hideLoginScreen();
+  const loaded=await loadStateFromSupabase(user);
+  if(loaded&&state.setupDone) showApp();
+  else{ initSetup(); document.getElementById('onboarding').style.display='flex'; }
+}
+
 async function init(){
   // Offline detection
   function updateOfflineBanner(){
     const el=document.getElementById('offline-banner');
     if(!el)return;
     el.style.display=navigator.onLine?'none':'block';
-    // Push content down when banner visible
     const topBar=document.getElementById('top-bar');
     if(topBar)topBar.style.top=navigator.onLine?'0':'40px';
   }
@@ -1134,9 +1318,22 @@ async function init(){
   window.addEventListener('offline',updateOfflineBanner);
   updateOfflineBanner();
 
-  const loaded=await loadState();
-  if(loaded&&state.setupDone) showApp();
-  else{initSetup();document.getElementById('onboarding').style.display='flex';}
+  // Auth state listener (handles OAuth redirect too)
+  _sb.auth.onAuthStateChange(async (event, session) => {
+    if(session?.user){
+      await _onUserSession(session.user);
+    } else if(event==='SIGNED_OUT'){
+      showLoginScreen();
+    }
+  });
+
+  // Check existing session
+  const { data:{ session } } = await _sb.auth.getSession();
+  if(session?.user){
+    await _onUserSession(session.user);
+  } else {
+    showLoginScreen();
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2176,6 +2373,16 @@ function renderExtraIncome(){
 // SETTINGS
 // ═══════════════════════════════════════════════════════
 function renderSettings(){
+  // Update account info
+  const uiEl=document.getElementById('settings-user-info');
+  if(uiEl){
+    if(_sbUser){
+      const name=_sbUser.user_metadata?.full_name||_sbUser.email;
+      uiEl.textContent=`${name} olarak giriş yapıldı. Veriler bulutta güvenle saklanıyor.`;
+    } else {
+      uiEl.textContent='Giriş yapılmamış — veriler yalnızca bu tarayıcıda saklanıyor.';
+    }
+  }
   document.getElementById('set-income').value=state.income||'';
   document.getElementById('set-reserve').value=state.reserve||'';
   updateReserveHint();
