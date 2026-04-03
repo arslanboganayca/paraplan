@@ -496,10 +496,11 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
           <div class="step-dot done current">3</div><div class="step-line"></div>
           <div class="step-dot">4</div>
         </div>
-        <div class="banner warning mb16"><span class="banner-icon">💡</span><div class="banner-body"><div class="banner-title">Sabit mi, değişken mi?</div><div class="banner-msg">Sabit: Kira, aidat gibi her ay aynı. Değişken: Market, eğlence gibi kontrol edilebilir.</div></div></div>
+        <div class="banner info mb8"><span class="banner-icon">💡</span><div class="banner-body"><div class="banner-title">Alt kategori nasıl seçilir?</div><div class="banner-msg">Her satırda <strong>Kategori</strong> seçince <strong>Alt Kategori</strong> dropdown'ı otomatik güncellenir. Listede yoksa "+ Yeni..." seçip kendiniz yazabilirsiniz.</div></div></div>
+        <div class="banner warning mb16"><span class="banner-icon">🔒</span><div class="banner-body"><div class="banner-title">Sabit mi, değişken mi?</div><div class="banner-msg">Sabit: Kira, aidat gibi her ay aynı. Değişken: Market, eğlence gibi kontrol edilebilir.</div></div></div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Kategori</th><th>Alt Kategori</th><th>Kişi</th><th>Tür</th><th class="text-right">Bütçe (₺)</th><th></th></tr></thead>
+            <thead><tr><th>Kategori</th><th>Alt Kategori ▾</th><th>Kişi</th><th>Tür</th><th class="text-right">Bütçe (₺)</th><th></th></tr></thead>
             <tbody id="budget-setup-tbody"></tbody>
           </table>
         </div>
@@ -708,6 +709,11 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
         <div class="section-title">Kategoriler</div>
         <div id="settings-cats"></div>
         <button class="btn btn-text btn-sm mt8" onclick="addCatSetting()">+ Kategori ekle</button>
+      </div>
+      <div class="card-outlined mb16">
+        <div class="section-title">Kurulum Sihirbazı</div>
+        <p class="text-sm mb16">Mevcut verileriniz korunur. Kategoriler ve bütçe kalemlerini adım adım gözden geçirebilirsiniz.</p>
+        <button class="btn btn-outlined btn-sm" onclick="restartSetupWizard()">⚙️ Kurulumu Yeniden Aç</button>
       </div>
       <div class="card-outlined" style="border-color:var(--md-error);">
         <div class="section-title" style="color:var(--md-error)">Tehlikeli Alan</div>
@@ -2178,6 +2184,16 @@ function showResetConfirm(){
 function executeReset(){
   state={income:0,reserve:0,persons:[],categories:[],budgetItems:[],transactions:[],milestones:[],extraIncome:[],setupDone:false,schemaVersion:SCHEMA_VERSION};
   saveState();location.reload();
+}
+function restartSetupWizard(){
+  state.setupDone=false;
+  saveState();
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('fab-wrap').style.display='none';
+  document.getElementById('bottom-nav').style.display='none';
+  document.getElementById('onboarding').style.display='flex';
+  renderPersonList();renderCategoryList();renderBudgetSetup();renderMilestoneSetup();
+  goStep(1);
 }
 
 // ═══════════════════════════════════════════════════════
