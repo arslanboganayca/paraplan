@@ -1264,19 +1264,46 @@ function renderCategoryList(){
 }
 function addCategory(){state.categories.push('Yeni Kategori');renderCategoryList();}
 
+function changeSetupCat(i,newCat){
+  const firstSub=getSubcatsForCat(newCat)[0]||'';
+  state.budgetItems[i].cat=newCat;
+  state.budgetItems[i].subcat=firstSub;
+  renderBudgetSetup();
+}
+function changeSetupSubcat(i,val){
+  if(val==='__new__'){
+    const v=prompt('Yeni alt kategori:');
+    if(v&&v.trim()){
+      const cat=state.budgetItems[i].cat;
+      if(!state.customSubcats)state.customSubcats={};
+      if(!state.customSubcats[cat])state.customSubcats[cat]=[];
+      if(!state.customSubcats[cat].includes(v.trim()))state.customSubcats[cat].push(v.trim());
+      state.budgetItems[i].subcat=v.trim();
+      renderBudgetSetup();
+    }
+    // if cancelled, re-render to reset select to current subcat
+    else renderBudgetSetup();
+  } else {
+    state.budgetItems[i].subcat=val;
+  }
+}
 function renderBudgetSetup(){
   if(!state.budgetItems)state.budgetItems=[];
   document.getElementById('budget-setup-tbody').innerHTML=state.budgetItems.map((item,i)=>{
     const isFixed=item.type==='fixed';
     const subcatOpts=getSubcatsForCat(item.cat);
+    // if item's subcat is not in the list (stale data), reset to first valid
+    if(item.subcat&&!subcatOpts.includes(item.subcat)){
+      item.subcat=subcatOpts[0]||'';
+    }
     const subcatSel=subcatOpts.map(s=>`<option value="${esc(s)}"${s===item.subcat?' selected':''}>${esc(s)}</option>`).join('')
       +`<option value="__new__">+ Yeni...</option>`;
     const selStyle='border:1px solid var(--md-outline-variant);border-radius:6px;padding:6px 8px;font-family:\'Roboto\',sans-serif;font-size:13px;background:transparent;cursor:pointer;max-width:160px;';
     return `<tr>
-      <td><select onchange="state.budgetItems[${i}].cat=this.value;state.budgetItems[${i}].subcat='';renderBudgetSetup();" style="${selStyle}">
+      <td><select onchange="changeSetupCat(${i},this.value)" style="${selStyle}">
         ${state.categories.map(c=>`<option ${c===item.cat?'selected':''}>${esc(c)}</option>`).join('')}
       </select></td>
-      <td><select onchange="if(this.value==='__new__'){const v=prompt('Yeni alt kategori:');if(v&&v.trim()){if(!state.customSubcats)state.customSubcats={};if(!state.customSubcats['${esc(item.cat)}'])state.customSubcats['${esc(item.cat)}']=[];state.customSubcats['${esc(item.cat)}'].push(v.trim());state.budgetItems[${i}].subcat=v.trim();renderBudgetSetup();}else{this.value='${esc(item.subcat||'')}';}}else{state.budgetItems[${i}].subcat=this.value;}" style="${selStyle}">${subcatSel}</select></td>
+      <td><select onchange="changeSetupSubcat(${i},this.value)" style="${selStyle}">${subcatSel}</select></td>
       <td><select onchange="state.budgetItems[${i}].person=this.value" style="${selStyle}">
         ${state.persons.map(p=>`<option ${p.name===item.person?'selected':''}>${esc(p.name)}</option>`).join('')}
       </select></td>
