@@ -1063,18 +1063,30 @@ function migrateState(s) {
 // ═══════════════════════════════════════════════════════
 // STORAGE
 // ═══════════════════════════════════════════════════════
+let _cloudSaveOk = true;
 async function saveState() {
   // Always save to localStorage as offline cache
   try { localStorage.setItem('budget-v6', JSON.stringify(state)); } catch(e){}
   // Save to Supabase if logged in
   if (_sbUser) {
     try {
-      await _sb.from('user_budget').upsert({
+      const { error } = await _sb.from('user_budget').upsert({
         user_id: _sbUser.id,
         state: state,
         updated_at: new Date().toISOString()
       }, { onConflict: 'user_id' });
-    } catch(e){ console.warn('Supabase save error', e); }
+      if (error) {
+        console.warn('Supabase save error', error);
+        if (_cloudSaveOk) showSnack('Buluta kaydedilemedi — veri bu cihazda duruyor');
+        _cloudSaveOk = false;
+      } else {
+        _cloudSaveOk = true;
+      }
+    } catch(e){
+      console.warn('Supabase save error', e);
+      if (_cloudSaveOk) showSnack('Buluta kaydedilemedi — veri bu cihazda duruyor');
+      _cloudSaveOk = false;
+    }
   }
 }
 
