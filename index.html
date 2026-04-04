@@ -923,6 +923,7 @@ const _sb = supabase.createClient(_SB_URL, _SB_KEY, {
   auth: { detectSessionInUrl: true }
 });
 let _sbUser = null; // currently signed-in user
+const _DEBUG_AUTH = (() => { try { return new URLSearchParams(location.search).has('debug'); } catch { return false; } })();
 
 // ═══════════════════════════════════════════════════════
 // CONSTANTS
@@ -1402,7 +1403,7 @@ async function init(){
 
   // 2) Sonraki olaylar — her birini ayrı ele al (üst üste binme yok)
   _sb.auth.onAuthStateChange(async (event, session) => {
-    console.log('[Auth]', event, session?.user?.email ?? '—');
+    if(_DEBUG_AUTH) console.log('[Auth]', event, session?.user?.email ?? '—');
     if(event==='INITIAL_SESSION'){
       if(session?.user){
         if(_lastLoadedStateForUserId!==session.user.id) await applySessionToApp(session);
