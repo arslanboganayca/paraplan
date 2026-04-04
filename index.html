@@ -431,6 +431,12 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
 <!-- LOGIN SCREEN -->
 <div id="login-screen">
   <div class="login-card">
+    <div id="login-busy-panel" style="display:none;text-align:center;padding:8px 0 24px;">
+      <div class="login-logo">💰</div>
+      <p class="login-sub" style="margin-top:16px;font-weight:500;">Google ile bağlanılıyor…</p>
+      <p style="font-size:13px;color:var(--md-on-surface-variant);margin-top:8px;">Oturum kuruluyor, lütfen bekleyin.</p>
+    </div>
+    <div id="login-interactive">
     <div class="login-logo">💰</div>
     <h1 class="login-title">Aile Bütçe<br>Planlayıcısı</h1>
     <p class="login-sub">Finansal hedeflerinizi takip edin</p>
@@ -445,6 +451,7 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
       <div id="login-error" class="login-error" style="display:none;"></div>
       <button class="btn btn-filled w100" onclick="signInWithEmail()">Giriş Yap</button>
       <div class="login-switch">Hesabın yok mu? <button onclick="signUpWithEmail()">Kayıt ol</button></div>
+    </div>
     </div>
   </div>
 </div>
@@ -1276,7 +1283,27 @@ function resetMonth(){
 // ═══════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════
+function isOAuthCallbackUrl(){
+  try{
+    const q=location.search||'', h=location.hash||'';
+    return /[?&]code=/.test(q) || /access_token=/.test(h) || /refresh_token=/.test(h);
+  }catch{ return false; }
+}
+function cleanAuthParamsFromUrl(){
+  try{
+    if(!isOAuthCallbackUrl()) return;
+    const path=location.pathname||'/';
+    history.replaceState({}, document.title, path);
+  }catch(e){}
+}
+function setLoginOAuthBusy(on){
+  const busy=document.getElementById('login-busy-panel');
+  const box=document.getElementById('login-interactive');
+  if(busy) busy.style.display=on?'block':'none';
+  if(box) box.style.display=on?'none':'block';
+}
 function showLoginScreen(){
+  setLoginOAuthBusy(false);
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('onboarding').style.display='none';
   document.getElementById('main-app').style.display='none';
@@ -1346,6 +1373,7 @@ function showLoginError(msg, isInfo=false){
 }
 async function signOutUser(){
   _lastLoadedStateForUserId = null;
+  _oauthRedirectPending = false;
   await _sb.auth.signOut();
   _sbUser=null;
   try{ localStorage.removeItem('budget-v6'); }catch(e){}
@@ -1354,6 +1382,8 @@ async function signOutUser(){
 
 /** Supabase user.id whose cloud state we already pulled this page load (avoids double initSetup). */
 let _lastLoadedStateForUserId = null;
+/** True while URL still has OAuth code/hash but session not ready yet (getSession race). */
+let _oauthRedirectPending = false;
 
 async function applySessionToApp(session){
   if(!session?.user){
@@ -1361,6 +1391,8 @@ async function applySessionToApp(session){
     showLoginScreen();
     return;
   }
+  _oauthRedirectPending=false;
+  cleanAuthParamsFromUrl();
   const user=session.user;
   const uid=user.id;
   _sbUser=user;
@@ -1396,12 +1428,9 @@ async function init(){
   window.addEventListener('offline',updateOfflineBanner);
   updateOfflineBanner();
 
-  // 1) getSession() runs URL/hash detection first — tek “gerçek” başlangıç noktası
-  const { data:{ session:boot } } = await _sb.auth.getSession();
-  if(boot?.user) await applySessionToApp(boot);
-  else showLoginScreen();
+  _oauthRedirectPending = isOAuthCallbackUrl();
 
-  // 2) Sonraki olaylar — her birini ayrı ele al (üst üste binme yok)
+  // Dinleyiciyi ÖNCE kaydet: OAuth dönüşünde kod değişimi getSession’dan sonra bitebiliyor; SIGNED_IN kaçmasın.
   _sb.auth.onAuthStateChange(async (event, session) => {
     if(_DEBUG_AUTH) console.log('[Auth]', event, session?.user?.email ?? '—');
     if(event==='INITIAL_SESSION'){
@@ -1412,7 +1441,9 @@ async function init(){
           updateNavUser(session.user);
           hideLoginScreen();
         }
-      }else if(!_sbUser) showLoginScreen();
+      }else if(!_sbUser && !_oauthRedirectPending){
+        showLoginScreen();
+      }
       return;
     }
     if(event==='TOKEN_REFRESHED'){
@@ -1424,15 +1455,43 @@ async function init(){
       return;
     }
     if(event==='SIGNED_IN'){
+      _oauthRedirectPending=false;
       await applySessionToApp(session);
       return;
     }
     if(event==='SIGNED_OUT'){
       _lastLoadedStateForUserId=null;
+      _oauthRedirectPending=false;
       _sbUser=null;
       showLoginScreen();
     }
   });
+
+  const { data:{ session:boot } } = await _sb.auth.getSession();
+  if(boot?.user){
+    await applySessionToApp(boot);
+    return;
+  }
+
+  if(_oauthRedirectPending){
+    showLoginScreen();
+    setLoginOAuthBusy(true);
+    for(let i=0;i<50;i++){
+      await new Promise(r=>setTimeout(r,100));
+      const { data:{ session:s2 } } = await _sb.auth.getSession();
+      if(s2?.user){
+        setLoginOAuthBusy(false);
+        await applySessionToApp(s2);
+        return;
+      }
+    }
+    _oauthRedirectPending=false;
+    setLoginOAuthBusy(false);
+    showLoginError('Oturum açılamadı. Google ile tekrar deneyin.', false);
+    return;
+  }
+
+  showLoginScreen();
 }
 
 // ═══════════════════════════════════════════════════════
