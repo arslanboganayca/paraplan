@@ -927,7 +927,7 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
 const _SB_URL = 'https://lnjbruvhnahqvbtftuxw.supabase.co';
 const _SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxuamJydXZobmFocXZidGZ0dXh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNDUyODQsImV4cCI6MjA5MDgyMTI4NH0.Ec3fduRzf8bhrpvkWqDeyZtOv8XnNgH3b7dov0ndtNE';
 const _sb = supabase.createClient(_SB_URL, _SB_KEY, {
-  auth: { detectSessionInUrl: true }
+  auth: { detectSessionInUrl: true, flowType: 'pkce' }
 });
 let _sbUser = null; // currently signed-in user
 const _DEBUG_AUTH = (() => { try { return new URLSearchParams(location.search).has('debug'); } catch { return false; } })();
@@ -1346,6 +1346,22 @@ function isOAuthCallbackUrl(){
     return /[?&]code=/.test(q) || /access_token=/.test(h) || /refresh_token=/.test(h);
   }catch{ return false; }
 }
+/** PKCE: URL’deki ?code= ile oturumu açıkça kurar. Sadece getSession() döngüsü Safari’de bazen hiç tetiklenmiyor. */
+async function tryExchangeOAuthPkce(){
+  try{
+    const code=new URLSearchParams(location.search).get('code');
+    if(!code) return null;
+    const { data, error } = await _sb.auth.exchangeCodeForSession(code);
+    if(error){
+      if(_DEBUG_AUTH) console.warn('[Auth] exchangeCodeForSession', error.message);
+      return null;
+    }
+    return data?.session||null;
+  }catch(e){
+    if(_DEBUG_AUTH) console.warn('[Auth] exchangeCodeForSession threw', e);
+    return null;
+  }
+}
 function cleanAuthParamsFromUrl(){
   try{
     if(!isOAuthCallbackUrl()) return;
@@ -1539,8 +1555,19 @@ async function init(){
     showLoginScreen();
     clearLoginError();
     setLoginOAuthBusy(true);
-    // Kod değişimi bazen 5 sn’den uzun sürer (Safari, yavaş ağ); erken hata kullanıcıyı yanıltıyor
-    const maxWaitMs=45000, stepMs=150;
+    // 1) PKCE kodunu açıkça değiştir (detectSessionInUrl tek başına bazen yetmiyor → 45 sn boşa bekleme)
+    let sPk=await tryExchangeOAuthPkce();
+    if(!sPk){
+      const { data:{ session:g1 } } = await _sb.auth.getSession();
+      sPk=g1;
+    }
+    if(sPk?.user){
+      setLoginOAuthBusy(false);
+      await applySessionToApp(sPk);
+      return;
+    }
+    // 2) Hash / yavaş ağ yedek bekleme
+    const maxWaitMs=30000, stepMs=150;
     const steps=Math.ceil(maxWaitMs/stepMs);
     for(let i=0;i<steps;i++){
       await new Promise(r=>setTimeout(r,stepMs));
