@@ -919,7 +919,9 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
 // ═══════════════════════════════════════════════════════
 const _SB_URL = 'https://lnjbruvhnahqvbtftuxw.supabase.co';
 const _SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxuamJydXZobmFocXZidGZ0dXh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNDUyODQsImV4cCI6MjA5MDgyMTI4NH0.Ec3fduRzf8bhrpvkWqDeyZtOv8XnNgH3b7dov0ndtNE';
-const _sb = supabase.createClient(_SB_URL, _SB_KEY);
+const _sb = supabase.createClient(_SB_URL, _SB_KEY, {
+  auth: { detectSessionInUrl: true }
+});
 let _sbUser = null; // currently signed-in user
 
 // ═══════════════════════════════════════════════════════
@@ -1316,35 +1318,46 @@ function showLoginError(msg, isInfo=false){
   el.style.color=isInfo?'var(--md-on-primary-container)':'var(--md-on-error-container)';
 }
 async function signOutUser(){
-  _sessionHandled = false;
+  _lastLoadedStateForUserId = null;
   await _sb.auth.signOut();
   _sbUser=null;
   try{ localStorage.removeItem('budget-v6'); }catch(e){}
   showLoginScreen();
 }
 
-let _sessionHandled = false;
-async function _onUserSession(user){
-  if(_sessionHandled && _sbUser?.id === user.id) return;
-  _sessionHandled = true;
-  _sbUser = user;
+/** Supabase user.id whose cloud state we already pulled this page load (avoids double initSetup). */
+let _lastLoadedStateForUserId = null;
+
+async function applySessionToApp(session){
+  if(!session?.user){
+    _sbUser=null;
+    showLoginScreen();
+    return;
+  }
+  const user=session.user;
+  const uid=user.id;
+  _sbUser=user;
   updateNavUser(user);
   hideLoginScreen();
-  try {
-    const loaded = await loadStateFromSupabase(user);
-    if(loaded && state.setupDone) showApp();
-    else { initSetup(); document.getElementById('onboarding').style.display='flex'; }
-  } catch(err) {
+  if(_lastLoadedStateForUserId===uid){
+    if(state.setupDone) showApp();
+    else document.getElementById('onboarding').style.display='flex';
+    return;
+  }
+  _lastLoadedStateForUserId=uid;
+  try{
+    const loaded=await loadStateFromSupabase(user);
+    if(loaded&&state.setupDone) showApp();
+    else{ initSetup(); document.getElementById('onboarding').style.display='flex'; }
+  }catch(err){
     console.error('Session init error:', err);
-    // Fallback: try local state
     loadStateLocal();
     if(state.setupDone) showApp();
-    else { initSetup(); document.getElementById('onboarding').style.display='flex'; }
+    else{ initSetup(); document.getElementById('onboarding').style.display='flex'; }
   }
 }
 
 async function init(){
-  // Offline detection
   function updateOfflineBanner(){
     const el=document.getElementById('offline-banner');
     if(!el)return;
@@ -1356,18 +1369,40 @@ async function init(){
   window.addEventListener('offline',updateOfflineBanner);
   updateOfflineBanner();
 
-  // Supabase v2: onAuthStateChange fires INITIAL_SESSION on every page load.
-  // Handles both returning users and OAuth redirects — no separate getSession() needed.
+  // 1) getSession() runs URL/hash detection first — tek “gerçek” başlangıç noktası
+  const { data:{ session:boot } } = await _sb.auth.getSession();
+  if(boot?.user) await applySessionToApp(boot);
+  else showLoginScreen();
+
+  // 2) Sonraki olaylar — her birini ayrı ele al (üst üste binme yok)
   _sb.auth.onAuthStateChange(async (event, session) => {
-    console.log('[Auth]', event, session?.user?.email ?? 'no user');
-    if(event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+    console.log('[Auth]', event, session?.user?.email ?? '—');
+    if(event==='INITIAL_SESSION'){
       if(session?.user){
-        await _onUserSession(session.user);
-      } else if(!_sessionHandled) {
-        showLoginScreen();
+        if(_lastLoadedStateForUserId!==session.user.id) await applySessionToApp(session);
+        else{
+          _sbUser=session.user;
+          updateNavUser(session.user);
+          hideLoginScreen();
+        }
+      }else if(!_sbUser) showLoginScreen();
+      return;
+    }
+    if(event==='TOKEN_REFRESHED'){
+      if(session?.user){
+        _sbUser=session.user;
+        updateNavUser(session.user);
+        hideLoginScreen();
       }
-    } else if(event === 'SIGNED_OUT'){
-      _sessionHandled = false;
+      return;
+    }
+    if(event==='SIGNED_IN'){
+      await applySessionToApp(session);
+      return;
+    }
+    if(event==='SIGNED_OUT'){
+      _lastLoadedStateForUserId=null;
+      _sbUser=null;
       showLoginScreen();
     }
   });
