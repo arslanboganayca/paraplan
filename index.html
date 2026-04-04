@@ -1002,7 +1002,8 @@ let state = {
   income:0, reserve:0,
   persons:[], categories:[], budgetItems:[], transactions:[],
   milestones:[], extraIncome:[],
-  setupDone:false, schemaVersion:SCHEMA_VERSION
+  setupDone:false, schemaVersion:SCHEMA_VERSION,
+  dataFlags:{ customizedInSetup:false, customizedInSettings:false, bannerDismissed:false }
 };
 
 let _editingBudgetId = null;
@@ -1063,6 +1064,17 @@ function migrateState(s) {
     if (!b.budgetHistory) b.budgetHistory = [{from:'2000-01', amount: b.budget||0}];
   });
   (s.milestones||[]).forEach(m => { if (!MS_TYPES[m.type]) m.type='expense_decrease'; });
+  if(!s.dataFlags||typeof s.dataFlags!=='object'){
+    s.dataFlags={
+      customizedInSetup:!!s.setupDone,
+      customizedInSettings:false,
+      bannerDismissed:false
+    };
+  }else{
+    s.dataFlags.customizedInSetup=!!s.dataFlags.customizedInSetup;
+    s.dataFlags.customizedInSettings=!!s.dataFlags.customizedInSettings;
+    s.dataFlags.bannerDismissed=!!s.dataFlags.bannerDismissed;
+  }
   s.schemaVersion = SCHEMA_VERSION;
   return s;
 }
@@ -1081,7 +1093,23 @@ function normUserEmail(user){
   return String(user.email).trim().toLowerCase();
 }
 function resetEmptyState(){
-  state={income:0,reserve:0,persons:[],categories:[],budgetItems:[],transactions:[],milestones:[],extraIncome:[],setupDone:false,schemaVersion:SCHEMA_VERSION};
+  state={income:0,reserve:0,persons:[],categories:[],budgetItems:[],transactions:[],milestones:[],extraIncome:[],setupDone:false,schemaVersion:SCHEMA_VERSION,dataFlags:{customizedInSetup:false,customizedInSettings:false,bannerDismissed:false}};
+}
+function ensureDataFlags(){
+  if(!state.dataFlags||typeof state.dataFlags!=='object'){
+    state.dataFlags={customizedInSetup:false,customizedInSettings:false,bannerDismissed:false};
+  }
+}
+function markSettingsDataTouched(){
+  ensureDataFlags();
+  state.dataFlags.customizedInSettings=true;
+}
+function dismissSampleBannerPersist(){
+  ensureDataFlags();
+  state.dataFlags.bannerDismissed=true;
+  try{ sessionStorage.setItem('sbDismissed','1'); }catch(e){}
+  saveState();
+  renderSampleBanner();
 }
 
 let _cloudSaveOk = true;
@@ -1161,9 +1189,10 @@ async function loadState() {
 function debounce(fn,ms=350){ let t; return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);}; }
 const dSave = debounce(saveState,400);
 function dSaveSettings(){
+  markSettingsDataTouched();
   state.income = +document.getElementById('set-income').value||state.income;
   state.reserve = +document.getElementById('set-reserve').value||state.reserve;
-  dSave(); markDirty('dashboard','projection','budget'); renderNavFooter(); updateReserveHint();
+  dSave(); markDirty('dashboard','projection','budget'); renderNavFooter(); updateReserveHint(); renderSampleBanner();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1530,6 +1559,7 @@ function initSetup(){
   const d=(day)=>`${y}-${mo}-${String(day).padStart(2,'0')}`;
   const fm=(off)=>{const fd=new Date(now.getFullYear(),now.getMonth()+off,1);return`${fd.getFullYear()}-${String(fd.getMonth()+1).padStart(2,'0')}`;};
 
+  state.dataFlags={customizedInSetup:false,customizedInSettings:false,bannerDismissed:!!state.dataFlags?.bannerDismissed};
   state.persons=[{name:'Ortak',id:'p0'},{name:'Kişi 1',id:'p1'},{name:'Kişi 2',id:'p2'}];
   state.income=100000;state.reserve=120000;
   state.categories=[
@@ -1829,6 +1859,8 @@ function finishSetup(){
   });
   state.setupDone=true;
   state.transactions=state.transactions||[];
+  ensureDataFlags();
+  state.dataFlags.customizedInSetup=true;
   saveState();
   showApp();
 }
@@ -1873,8 +1905,12 @@ function renderNavFooter(){
 
 function renderSampleBanner(){
   const el=document.getElementById('sample-data-banner');if(!el)return;
-  if(sessionStorage.getItem('sbDismissed')){el.innerHTML='';return;}
-  el.innerHTML=`<div class="banner info mb16"><span class="banner-icon">👋</span><div class="banner-body" style="flex:1;"><div class="banner-title">Örnek verilerle bakıyorsunuz</div><div class="banner-msg">Kişi adlarını, bütçe tutarlarını ve harcamaları kendi verilerinizle güncelleyin.</div></div><button class="btn btn-text btn-sm" onclick="sessionStorage.setItem('sbDismissed','1');document.getElementById('sample-data-banner').innerHTML='';">Anladım</button></div>`;
+  ensureDataFlags();
+  const f=state.dataFlags;
+  const hide=f.bannerDismissed||f.customizedInSetup||f.customizedInSettings||sessionStorage.getItem('sbDismissed');
+  if(hide){ el.innerHTML=''; return; }
+  const dbg=_DEBUG_AUTH?`dataFlags: kurulum=${f.customizedInSetup} ayar=${f.customizedInSettings} anladim=${f.bannerDismissed}`:'';
+  el.innerHTML=`<div class="banner info mb16"${dbg?' title="'+esc(dbg)+'"':''}><span class="banner-icon">👋</span><div class="banner-body" style="flex:1;"><div class="banner-title">Örnek verilerle bakıyorsunuz</div><div class="banner-msg">Kişi adlarını, bütçe tutarlarını ve harcamaları kendi verilerinizle güncelleyin.</div></div><button class="btn btn-text btn-sm" onclick="dismissSampleBannerPersist()">Anladım</button></div>`;
 }
 
 function showPage(page){
@@ -1900,6 +1936,7 @@ function toggleNav(){
 // DASHBOARD
 // ═══════════════════════════════════════════════════════
 function renderDashboard(){
+  renderSampleBanner();
   renderMonthBar('dash-month-bar');
   const{budget,actual}=computeForMonth(_activeMonth);
   const income=getTotalIncome();
@@ -2561,10 +2598,11 @@ function saveMilestone(){
 // ═══════════════════════════════════════════════════════
 function addExtraIncome(){
   if(!state.extraIncome)state.extraIncome=[];
+  markSettingsDataTouched();
   state.extraIncome.push({id:Date.now(),desc:'',amount:0,frequency:'monthly'});
-  saveState();renderSettings();
+  saveState();renderSettings();renderSampleBanner();
 }
-const dExtraSave=debounce(()=>{saveState();markDirty('dashboard','projection');renderNavFooter();},400);
+const dExtraSave=debounce(()=>{markSettingsDataTouched();saveState();markDirty('dashboard','projection');renderNavFooter();renderSampleBanner();},400);
 
 function renderExtraIncome(){
   const el=document.getElementById('extra-income-list');if(!el)return;
@@ -2578,7 +2616,7 @@ function renderExtraIncome(){
         <option value="monthly" ${e.frequency==='monthly'?'selected':''}>Aylık</option>
         <option value="annual" ${e.frequency==='annual'?'selected':''}>Yıllık (÷12)</option>
       </select>
-      <button class="btn-icon" onclick="state.extraIncome.splice(${i},1);saveState();renderSettings();markDirty('dashboard');renderIfDirty('dashboard');">✕</button>
+      <button class="btn-icon" onclick="state.extraIncome.splice(${i},1);markSettingsDataTouched();saveState();renderSettings();markDirty('dashboard');renderIfDirty('dashboard');renderSampleBanner();">✕</button>
     </div>`).join('');
 }
 
@@ -2602,14 +2640,14 @@ function renderSettings(){
   document.getElementById('settings-persons').innerHTML=state.persons.map((p,i)=>`
     <div class="list-tile">
       <div class="person-avatar ${AV_CLASSES[i]}">${esc(p.name).slice(0,2).toUpperCase()}</div>
-      <div class="list-tile-content"><input class="field-input" value="${esc(p.name)}" onchange="state.persons[${i}].name=this.value;saveState();markDirty('dashboard','budget','transactions');renderNavFooter();"></div>
-      ${i>0?`<button class="btn-icon" onclick="state.persons.splice(${i},1);saveState();renderSettings();">✕</button>`:''}
+      <div class="list-tile-content"><input class="field-input" value="${esc(p.name)}" onchange="state.persons[${i}].name=this.value;markSettingsDataTouched();saveState();markDirty('dashboard','budget','transactions');renderNavFooter();renderSampleBanner();"></div>
+      ${i>0?`<button class="btn-icon" onclick="state.persons.splice(${i},1);markSettingsDataTouched();saveState();renderSettings();renderSampleBanner();">✕</button>`:''}
     </div>`).join('');
   document.getElementById('settings-cats').innerHTML=state.categories.map((c,i)=>`
     <div class="list-tile">
       <span style="font-size:20px;width:28px;text-align:center;">${CAT_EMOJIS[c]||'📦'}</span>
-      <div class="list-tile-content"><input class="field-input" value="${esc(c)}" onchange="state.categories[${i}]=this.value;saveState();"></div>
-      <button class="btn-icon" onclick="state.categories.splice(${i},1);saveState();renderSettings();">✕</button>
+      <div class="list-tile-content"><input class="field-input" value="${esc(c)}" onchange="state.categories[${i}]=this.value;markSettingsDataTouched();saveState();renderSampleBanner();"></div>
+      <button class="btn-icon" onclick="state.categories.splice(${i},1);markSettingsDataTouched();saveState();renderSettings();renderSampleBanner();">✕</button>
     </div>`).join('');
   renderExtraIncome();
 }
@@ -2619,18 +2657,20 @@ function updateReserveHint(){
   const savings=(state.transactions||[]).filter(t=>!t.deletedAt&&t.cat==='Birikim').reduce((s,t)=>s+(t.amount||0),0);
   el.innerHTML=savings>0?`<span class="field-helper good">Toplam birikimler: +₺${fmt(savings)} — bunu rezerve dahil etmeyi düşünün.</span>`:'';
 }
-function addPersonSetting(){state.persons.push({name:`Kişi ${state.persons.length}`,id:`p${state.persons.length}`});saveState();renderSettings();}
-function addCatSetting(){state.categories.push('Yeni Kategori');saveState();renderSettings();}
+function addPersonSetting(){markSettingsDataTouched();state.persons.push({name:`Kişi ${state.persons.length}`,id:`p${state.persons.length}`});saveState();renderSettings();renderSampleBanner();}
+function addCatSetting(){markSettingsDataTouched();state.categories.push('Yeni Kategori');saveState();renderSettings();renderSampleBanner();}
 function showResetConfirm(){
   document.getElementById('reset-confirm-area').innerHTML=`
     <div class="banner error"><span class="banner-icon">⚠️</span><div class="banner-body"><div class="banner-title">Tüm veriler silinecek!</div><div class="banner-msg">Bu işlem geri alınamaz.</div><div class="flex gap8 mt8"><button class="btn btn-danger-text btn-sm" onclick="executeReset()">Evet, sıfırla</button><button class="btn btn-text btn-sm" onclick="renderSettings()">İptal</button></div></div></div>`;
 }
 function executeReset(){
-  state={income:0,reserve:0,persons:[],categories:[],budgetItems:[],transactions:[],milestones:[],extraIncome:[],setupDone:false,schemaVersion:SCHEMA_VERSION};
+  state={income:0,reserve:0,persons:[],categories:[],budgetItems:[],transactions:[],milestones:[],extraIncome:[],setupDone:false,schemaVersion:SCHEMA_VERSION,dataFlags:{customizedInSetup:false,customizedInSettings:false,bannerDismissed:false}};
   saveState();location.reload();
 }
 function restartSetupWizard(){
   state.setupDone=false;
+  ensureDataFlags();
+  state.dataFlags.customizedInSetup=false;
   saveState();
   document.getElementById('main-app').style.display='none';
   document.getElementById('fab-wrap').style.display='none';
