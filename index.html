@@ -999,7 +999,6 @@ let state = {
 
 let _editingBudgetId = null;
 let _editingTxId     = null;
-let _pendingDeleteBudget = null;
 let _pendingDeleteTx = null;
 let _bmType = 'variable';
 let _txFilters = {cat:'',person:'',payment:'',month:''};
@@ -2039,7 +2038,6 @@ function confirmDeleteBudget(id){
 function startInlineEdit(id){
   if(_inlineEditId==id) return;  // already editing this row
   _inlineEditId = id;
-  _pendingDeleteBudget = null;
   renderBudgetPage();  // re-render to show input
 }
 
