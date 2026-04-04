@@ -1428,6 +1428,10 @@ function showLoginError(msg, isInfo=false){
   el.style.background=isInfo?'var(--md-primary-container)':'var(--md-error-container)';
   el.style.color=isInfo?'var(--md-on-primary-container)':'var(--md-on-error-container)';
 }
+function clearLoginError(){
+  const el=document.getElementById('login-error');
+  if(el){ el.textContent=''; el.style.display='none'; }
+}
 async function signOutUser(){
   _lastLoadedStateForUserId = null;
   _oauthRedirectPending = false;
@@ -1450,6 +1454,7 @@ async function applySessionToApp(session){
   }
   _oauthRedirectPending=false;
   cleanAuthParamsFromUrl();
+  clearLoginError();
   const user=session.user;
   const uid=user.id;
   _sbUser=user;
@@ -1532,9 +1537,13 @@ async function init(){
 
   if(_oauthRedirectPending){
     showLoginScreen();
+    clearLoginError();
     setLoginOAuthBusy(true);
-    for(let i=0;i<50;i++){
-      await new Promise(r=>setTimeout(r,100));
+    // Kod değişimi bazen 5 sn’den uzun sürer (Safari, yavaş ağ); erken hata kullanıcıyı yanıltıyor
+    const maxWaitMs=45000, stepMs=150;
+    const steps=Math.ceil(maxWaitMs/stepMs);
+    for(let i=0;i<steps;i++){
+      await new Promise(r=>setTimeout(r,stepMs));
       const { data:{ session:s2 } } = await _sb.auth.getSession();
       if(s2?.user){
         setLoginOAuthBusy(false);
@@ -1542,9 +1551,17 @@ async function init(){
         return;
       }
     }
+    const { data:{ session:late } } = await _sb.auth.getSession();
+    if(late?.user){
+      setLoginOAuthBusy(false);
+      await applySessionToApp(late);
+      return;
+    }
     _oauthRedirectPending=false;
     setLoginOAuthBusy(false);
-    showLoginError('Oturum açılamadı. Google ile tekrar deneyin.', false);
+    cleanAuthParamsFromUrl();
+    showLoginScreen();
+    showLoginError('Giriş tamamlanması gecikti. «Google ile Giriş Yap»a bir kez daha basın.', true);
     return;
   }
 
