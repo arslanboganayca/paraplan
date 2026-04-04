@@ -1286,17 +1286,32 @@ function showLoginScreen(){
 function hideLoginScreen(){
   document.getElementById('login-screen').style.display='none';
 }
+function safeAvatarUrl(u){
+  if(!u||typeof u!=='string') return '';
+  try{
+    const url=new URL(u);
+    if(url.protocol!=='https:') return '';
+    return u;
+  }catch{ return ''; }
+}
 function updateNavUser(user){
   if(!user){ document.getElementById('nav-user-area').style.display='none'; return; }
   document.getElementById('nav-user-area').style.display='flex';
   const name = user.user_metadata?.full_name || user.email || 'Kullanıcı';
   const email = user.email || '';
-  const pic = user.user_metadata?.avatar_url || '';
+  const pic = safeAvatarUrl(user.user_metadata?.avatar_url || '');
   document.getElementById('nav-user-name').textContent = name;
   document.getElementById('nav-user-email').textContent = email;
   const av = document.getElementById('nav-user-avatar');
-  if(pic){ av.innerHTML=`<img src="${pic}" alt="">`; }
-  else { av.textContent = name.slice(0,2).toUpperCase(); }
+  av.innerHTML='';
+  if(pic){
+    const img=document.createElement('img');
+    img.src=pic;
+    img.alt='';
+    av.appendChild(img);
+  }else{
+    av.textContent=name.slice(0,2).toUpperCase();
+  }
 }
 
 async function signInWithGoogle(){
