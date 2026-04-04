@@ -1161,6 +1161,7 @@ async function loadStateFromSupabase(user) {
     }
     if (data) {
       state = migrateState(data.state);
+      repairEmptyOnboardingIfNeeded();
       try { localStorage.setItem('budget-v6', JSON.stringify(state)); } catch(e){}
       return true;
     }
@@ -1176,7 +1177,7 @@ function loadStateLocal() {
     const keys = ['budget-v6','budget-v4','budget-app-v3','budget-app-state'];
     for (const k of keys) {
       const d = localStorage.getItem(k);
-      if (d) { state = migrateState(JSON.parse(d)); return true; }
+      if (d) { state = migrateState(JSON.parse(d)); repairEmptyOnboardingIfNeeded(); return true; }
     }
   } catch(e){}
   return false;
@@ -1485,7 +1486,16 @@ async function applySessionToApp(session){
   try{
     const loaded=await loadStateFromSupabase(user);
     if(loaded&&state.setupDone) showApp();
-    else{ initSetup(); document.getElementById('onboarding').style.display='flex'; }
+    else if(loaded){
+      repairEmptyOnboardingIfNeeded();
+      document.getElementById('onboarding').style.display='flex';
+      const si=document.getElementById('s-income');const sr=document.getElementById('s-reserve');
+      if(si) si.value=state.income;if(sr) sr.value=state.reserve;
+      renderPersonList();renderCategoryList();renderBudgetSetup();renderMilestoneSetup();
+    } else {
+      initSetup();
+      document.getElementById('onboarding').style.display='flex';
+    }
   }catch(err){
     console.error('Session init error:', err);
     resetEmptyState();
@@ -1598,6 +1608,25 @@ async function init(){
 // ═══════════════════════════════════════════════════════
 // SETUP
 // ═══════════════════════════════════════════════════════
+/** Bulutta setupDone=false ama kategoriler/bütçe boş kalmış kayıtlar (eski migration) — sihirbaz adımları bomboş kalmasın */
+function repairEmptyOnboardingIfNeeded(){
+  if(state.setupDone)return;
+  if((state.transactions||[]).some(t=>t.id>9000))return;
+  if(state.categories?.length && state.budgetItems?.length)return;
+  const keepI=state.income,keepR=state.reserve;
+  const keepP=state.persons?.length?JSON.parse(JSON.stringify(state.persons)):null;
+  initSetup();
+  if(keepI>0)state.income=keepI;
+  if(keepR>=0)state.reserve=keepR;
+  if(keepP&&keepP.length)state.persons=keepP;
+  const si=document.getElementById('s-income');
+  const sr=document.getElementById('s-reserve');
+  if(si)si.value=state.income;
+  if(sr)sr.value=state.reserve;
+  renderPersonList();renderCategoryList();renderBudgetSetup();renderMilestoneSetup();
+  dSave();
+}
+
 function initSetup(){
   const now=new Date(),y=now.getFullYear(),mo=String(now.getMonth()+1).padStart(2,'0');
   const d=(day)=>`${y}-${mo}-${String(day).padStart(2,'0')}`;
@@ -1870,6 +1899,7 @@ function updateMsHelper(helperId,amountId,typeId){
 }
 
 function goStep(n){
+  repairEmptyOnboardingIfNeeded();
   // Always flush current step data to state before navigating
   const si=document.getElementById('s-income');
   const sr=document.getElementById('s-reserve');
@@ -2715,6 +2745,7 @@ function restartSetupWizard(){
   state.setupDone=false;
   ensureDataFlags();
   state.dataFlags.customizedInSetup=false;
+  repairEmptyOnboardingIfNeeded();
   saveState();
   document.getElementById('main-app').style.display='none';
   document.getElementById('fab-wrap').style.display='none';
