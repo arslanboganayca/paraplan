@@ -1037,8 +1037,8 @@ function migrateState(s) {
         {id:3002,desc:'Kredi ödemesi bitiyor',month:fm(10),amount:5000,type:'expense_decrease'},
       ];
     }
-    // Restore persons if empty
-    if (!(s.persons||[]).length) {
+    // Restore persons if empty or corrupted (e.g. first person named "Kişi 0")
+    if (!(s.persons||[]).length || s.persons[0]?.name==='Kişi 0') {
       s.persons=[{name:'Ortak',id:'p0'},{name:'Kişi 1',id:'p1'},{name:'Kişi 2',id:'p2'}];
     }
     // If income is 0 and no real data, restore income
