@@ -1068,20 +1068,42 @@ function migrateState(s) {
 }
 
 // ═══════════════════════════════════════════════════════
-// STORAGE
+// STORAGE  (bulut = tek kaynak; satır anahtarı: normalize edilmiş e-posta)
+// ── Supabase SQL (bir kez çalıştır): ───────────────────
+// ALTER TABLE user_budget ADD COLUMN IF NOT EXISTS owner_email text;
+// UPDATE user_budget b SET owner_email = lower(trim(u.email)) FROM auth.users u WHERE u.id = b.user_id AND (b.owner_email IS NULL OR b.owner_email = '');
+// CREATE UNIQUE INDEX IF NOT EXISTS user_budget_owner_email_unique ON user_budget (owner_email);
+// RLS: SELECT/INSERT/UPDATE için  USING / WITH CHECK  (owner_email = lower(trim(auth.jwt() ->> 'email')))
+// Eski policy'leri (sadece user_id) kaldırıp e-posta eşleşmesiyle yeniden oluşturun.
 // ═══════════════════════════════════════════════════════
+function normUserEmail(user){
+  if(!user?.email) return '';
+  return String(user.email).trim().toLowerCase();
+}
+function resetEmptyState(){
+  state={income:0,reserve:0,persons:[],categories:[],budgetItems:[],transactions:[],milestones:[],extraIncome:[],setupDone:false,schemaVersion:SCHEMA_VERSION};
+}
+
 let _cloudSaveOk = true;
 async function saveState() {
-  // Always save to localStorage as offline cache
+  // Always save to localStorage as offline cache (aynı hesabın son bulut görüntüsü)
   try { localStorage.setItem('budget-v6', JSON.stringify(state)); } catch(e){}
   // Save to Supabase if logged in
   if (_sbUser) {
+    const em = normUserEmail(_sbUser);
     try {
-      const { error } = await _sb.from('user_budget').upsert({
+      const row = {
         user_id: _sbUser.id,
         state: state,
         updated_at: new Date().toISOString()
-      }, { onConflict: 'user_id' });
+      };
+      let error;
+      if(em){
+        row.owner_email = em;
+        ({ error } = await _sb.from('user_budget').upsert(row, { onConflict: 'owner_email' }));
+      }else{
+        ({ error } = await _sb.from('user_budget').upsert(row, { onConflict: 'user_id' }));
+      }
       if (error) {
         console.warn('Supabase save error', error);
         if (_cloudSaveOk) showSnack('Buluta kaydedilemedi — veri bu cihazda duruyor');
@@ -1099,20 +1121,26 @@ async function saveState() {
 
 async function loadStateFromSupabase(user) {
   try {
-    const { data, error } = await _sb
-      .from('user_budget')
-      .select('state')
-      .eq('user_id', user.id)
-      .maybeSingle();  // returns null instead of error when no row found
-    if (data && !error) {
+    const em = normUserEmail(user);
+    let data = null;
+    if(em){
+      const r = await _sb.from('user_budget').select('state').eq('owner_email', em).maybeSingle();
+      if(r.data) data = r.data;
+    }
+    if(!data){
+      const r2 = await _sb.from('user_budget').select('state').eq('user_id', user.id).maybeSingle();
+      if(r2.data) data = r2.data;
+    }
+    if (data) {
       state = migrateState(data.state);
       try { localStorage.setItem('budget-v6', JSON.stringify(state)); } catch(e){}
       return true;
     }
-    console.log('[Supabase] No cloud data for user, checking local cache');
-  } catch(e){ console.warn('[Supabase] Load error:', e); }
-  // New user — try local cache then show onboarding
-  return loadStateLocal();
+    // Giriş yapılmış: bulutta satır yok — cihazdaki başka oturum/anon veriyi BİRLEŞTİRME
+    resetEmptyState();
+    console.log('[Supabase] Bu e-posta için bulutta kayıt yok — yeni kurulum');
+  } catch(e){ console.warn('[Supabase] Load error:', e); resetEmptyState(); }
+  return false;
 }
 
 function loadStateLocal() {
@@ -1410,9 +1438,9 @@ async function applySessionToApp(session){
     else{ initSetup(); document.getElementById('onboarding').style.display='flex'; }
   }catch(err){
     console.error('Session init error:', err);
-    loadStateLocal();
-    if(state.setupDone) showApp();
-    else{ initSetup(); document.getElementById('onboarding').style.display='flex'; }
+    resetEmptyState();
+    initSetup();
+    document.getElementById('onboarding').style.display='flex';
   }
 }
 
