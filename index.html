@@ -585,7 +585,7 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
     <div class="setup-step" id="step4">
       <div class="setup-card" style="max-width:680px;margin:0 auto;">
         <div class="setup-headline">Planlı Değişiklikler</div>
-        <p class="setup-body">2 örnek değişiklik eklendi. Düzenleyin veya yenilerini ekleyin.</p>
+        <p class="setup-body" id="step4-body">Gelecekteki değişiklikleri ekleyin veya düzenleyin.</p>
         <div class="progress-stepper">
           <div class="step-dot done">✓</div><div class="step-line done"></div>
           <div class="step-dot done">✓</div><div class="step-line done"></div>
@@ -925,7 +925,7 @@ let _sbUser = null; // currently signed-in user
 // ═══════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 const AV_CLASSES = ['av0','av1','av2','av3','av4'];
 const PERSON_HEX  = ['#006A6A','#4A6363','#4B607C','#795900','#BA1A1A'];
 const CAT_COLORS  = ['#006A6A','#4A6363','#795900','#4B607C','#BA1A1A','#0891B2','#DB2777','#16A34A','#EA580C','#64748B','#7C3AED','#854D0E'];
@@ -1016,12 +1016,19 @@ const _dirty = new Set(['dashboard','budget','transactions','projection','settin
 function migrateState(s) {
   // v6: sample data completely restructured — force re-onboarding for old sample sessions
   if ((s.schemaVersion||0) < 6 && s.setupDone) {
-    // Only reset if user hasn't entered any real transactions beyond the sample set
     const hasRealData = (s.transactions||[]).some(t => t.id > 9000);
-    if (!hasRealData) {
-      s.setupDone = false;
-    }
+    if (!hasRealData) { s.setupDone = false; }
   }
+  // v7: milestones may be empty due to double-initSetup bug — add sample ones back
+  if ((s.schemaVersion||0) < 7 && s.setupDone && !(s.milestones||[]).length) {
+    const now=new Date();
+    const fm=(off)=>{const fd=new Date(now.getFullYear(),now.getMonth()+off,1);return`${fd.getFullYear()}-${String(fd.getMonth()+1).padStart(2,'0')}`;};
+    s.milestones=[
+      {id:3001,desc:'Maaş artışı bekleniyor',month:fm(4),amount:10000,type:'income_increase'},
+      {id:3002,desc:'Kredi ödemesi bitiyor',month:fm(10),amount:5000,type:'expense_decrease'},
+    ];
+  }
+  s.milestones = s.milestones || [];
   s.extraIncome = s.extraIncome || [];
   (s.budgetItems||[]).forEach(b => {
     if (!b.type) b.type = 'variable';
@@ -1633,7 +1640,13 @@ function goStep(n){
   });
   document.querySelectorAll('.setup-step').forEach(s=>s.classList.remove('active'));
   document.getElementById(`step${n}`)?.classList.add('active');
-  if(n===3)renderBudgetSetup();
+  if(n===3) renderBudgetSetup();
+  if(n===4) {
+    renderMilestoneSetup();
+    const cnt=state.milestones?.length||0;
+    const b=document.getElementById('step4-body');
+    if(b) b.textContent=cnt>0?`${cnt} değişiklik var. Düzenleyin veya yenilerini ekleyin.`:'Gelecekteki değişiklikleri ekleyin (kira artışı, zam, tek seferlik gider vb.)';
+  }
 }
 function finishSetup(){
   // Flush any uncommitted DOM values before saving
