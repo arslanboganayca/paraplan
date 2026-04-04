@@ -1014,22 +1014,40 @@ const _dirty = new Set(['dashboard','budget','transactions','projection','settin
 // MIGRATION
 // ═══════════════════════════════════════════════════════
 function migrateState(s) {
-  // v6: sample data completely restructured — force re-onboarding for old sample sessions
+  // v6: sample data restructured — force re-onboarding for old sample sessions
   if ((s.schemaVersion||0) < 6 && s.setupDone) {
     const hasRealData = (s.transactions||[]).some(t => t.id > 9000);
     if (!hasRealData) { s.setupDone = false; }
   }
-  // v7: milestones may be empty due to double-initSetup bug — add sample ones back
-  if ((s.schemaVersion||0) < 7 && s.setupDone && !(s.milestones||[]).length) {
+  // v7: restore fields that went empty due to double-initSetup auth bug
+  if ((s.schemaVersion||0) < 7 && s.setupDone) {
+    const hasRealTx = (s.transactions||[]).some(t => t.id > 9000);
     const now=new Date();
     const fm=(off)=>{const fd=new Date(now.getFullYear(),now.getMonth()+off,1);return`${fd.getFullYear()}-${String(fd.getMonth()+1).padStart(2,'0')}`;};
-    s.milestones=[
-      {id:3001,desc:'Maaş artışı bekleniyor',month:fm(4),amount:10000,type:'income_increase'},
-      {id:3002,desc:'Kredi ödemesi bitiyor',month:fm(10),amount:5000,type:'expense_decrease'},
-    ];
+    // Restore categories if empty
+    if (!(s.categories||[]).length) {
+      s.categories=['Konut','Gıda','Ulaşım','Sağlık','Eğitim','Eğlence',
+        'Dijital Abonelik','Teknoloji & Tasarım','Kişisel','Spor',
+        'Destek','Birikim','Banka & Ödemeler','Özel Gün','Seyahat','Hobi'];
+    }
+    // Restore milestones if empty
+    if (!(s.milestones||[]).length) {
+      s.milestones=[
+        {id:3001,desc:'Maaş artışı bekleniyor',month:fm(4),amount:10000,type:'income_increase'},
+        {id:3002,desc:'Kredi ödemesi bitiyor',month:fm(10),amount:5000,type:'expense_decrease'},
+      ];
+    }
+    // Restore persons if empty
+    if (!(s.persons||[]).length) {
+      s.persons=[{name:'Ortak',id:'p0'},{name:'Kişi 1',id:'p1'},{name:'Kişi 2',id:'p2'}];
+    }
+    // If income is 0 and no real data, restore income
+    if (!s.income && !hasRealTx) { s.income=100000; s.reserve=120000; }
   }
   s.milestones = s.milestones || [];
   s.extraIncome = s.extraIncome || [];
+  s.categories = s.categories || [];
+  s.persons = s.persons || [];
   (s.budgetItems||[]).forEach(b => {
     if (!b.type) b.type = 'variable';
     if (!b.id)   b.id   = Date.now() + Math.random();
@@ -1640,6 +1658,8 @@ function goStep(n){
   });
   document.querySelectorAll('.setup-step').forEach(s=>s.classList.remove('active'));
   document.getElementById(`step${n}`)?.classList.add('active');
+  if(n===1) renderPersonList();
+  if(n===2) renderCategoryList();
   if(n===3) renderBudgetSetup();
   if(n===4) {
     renderMilestoneSetup();
