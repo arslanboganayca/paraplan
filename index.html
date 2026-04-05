@@ -554,10 +554,10 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
       <div class="grid2 mb16">
         <div class="card-outlined">
           <div class="section-title">Kategori dağılımı</div>
-          <div style="display:flex;gap:16px;align-items:flex-start;">
-            <div style="width:180px;height:180px;flex-shrink:0;position:relative;"><canvas id="cat-chart"></canvas></div>
-            <div id="cat-legend" style="flex:1;min-width:0;max-height:180px;overflow-y:auto;"></div>
+          <div style="position:relative;height:200px;max-width:200px;margin:0 auto 16px;">
+            <canvas id="cat-chart"></canvas>
           </div>
+          <div id="cat-legend" style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;"></div>
           <div class="divider"></div>
           <div id="fixed-variable-summary" style="display:flex;gap:0;"></div>
         </div>
@@ -1547,7 +1547,7 @@ function renderInsights(budget,actual,income,netPosition){
       col:'var(--md-on-surface)',
     },
     {
-      label:'Rezerv',
+      label:'Rezerv süresi',
       value:reserveMonths+' ay',
       sub:'₺'+fmt(state.reserve||0)+' havuz',
       col: resCol,
@@ -1633,11 +1633,10 @@ function renderDashboard(){
     const bud=budget.byCat[c]||0,act=actual.byCat[c]||0;
     const pct=budget.total>0?Math.round(bud/budget.total*100):0;
     const over=act>bud&&bud>0;
-    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-      <div style="width:10px;height:10px;border-radius:2px;background:${CAT_COLORS[i%CAT_COLORS.length]};flex-shrink:0;"></div>
-      <span style="font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${CAT_EMOJIS[c]||'📦'} ${esc(c)}</span>
-      <span style="font-size:12px;font-weight:500;color:${over?'var(--md-error)':'inherit'};">₺${fmt(bud)}</span>
-      <span style="font-size:11px;color:var(--md-on-surface-variant);min-width:28px;text-align:right;">%${pct}</span>
+    return `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;min-width:0;">
+      <div style="width:8px;height:8px;border-radius:2px;background:${CAT_COLORS[i%CAT_COLORS.length]};flex-shrink:0;"></div>
+      <span style="font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--md-on-surface-variant);">${esc(c)}</span>
+      <span style="font-size:11px;font-weight:500;color:${over?'var(--md-error)':'var(--md-on-surface)'};flex-shrink:0;">%${pct}</span>
     </div>`;
   }).join('');
 
