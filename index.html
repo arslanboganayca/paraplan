@@ -2877,13 +2877,13 @@ Yıllık tutarları 12'ye böl, aylık olarak göster.`;
     }
 
     // TODO: Supabase Edge Function endpoint'ine bağlanacak
-    const ANALYZE_URL = window.PARAPLAN_ANALYZE_URL || 'https://api.anthropic.com/v1/messages';
+    const ANALYZE_URL = 'https://lnjbruvhnahqvbtftuxw.supabase.co/functions/v1/ai-analyze';
     const resp=await fetch(ANALYZE_URL,{
       method:'POST',
       headers:{
         'Content-Type':'application/json',
         'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true'
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
       },
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,system:systemPrompt,messages})
     });
