@@ -356,7 +356,7 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
     </div>
   </div>
   <div class="profile-dd-body">
-    <button class="profile-dd-link" onclick="closeProfileDropdown();showPage('settings');">⚙ Ayarlar</button>
+    <button class="profile-dd-link" onclick="closeProfileDropdown();showPage('settings');">Ayarlar</button>
     <button class="profile-dd-link" style="color:var(--md-on-surface);" onclick="closeProfileDropdown();logoutUser();">Çıkış Yap</button>
   </div>
 </div>
@@ -692,24 +692,25 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
 
       <!-- Profil Bilgileri -->
       <div class="card-outlined mb16">
-        <div class="section-title">Profil</div>
+        <div class="flex items-center justify-between mb12">
+          <div class="section-title" style="margin:0;">Profil</div>
+          <div style="display:flex;gap:8px;" id="profile-edit-actions" style="display:none;">
+            <button class="btn btn-text btn-sm" onclick="cancelProfileEdit()">İptal</button>
+            <button class="btn btn-tonal btn-sm" onclick="saveProfileEdit()">Kaydet</button>
+          </div>
+        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
           <div class="field"><label class="field-label">Ad</label>
-            <input type="text" class="field-input" id="settings-name" placeholder="Adınız" onchange="state.name=this.value;saveState();updateProfileUI();">
+            <input type="text" class="field-input" id="settings-name" placeholder="Adınız"
+              oninput="showProfileEditActions()">
           </div>
           <div class="field"><label class="field-label">Soyad</label>
-            <input type="text" class="field-input" id="settings-surname" placeholder="Soyadınız" onchange="state.surname=this.value;saveState();updateProfileUI();">
+            <input type="text" class="field-input" id="settings-surname" placeholder="Soyadınız"
+              oninput="showProfileEditActions()">
           </div>
         </div>
-        <div class="field mb12"><label class="field-label">E-posta</label>
+        <div class="field"><label class="field-label">E-posta</label>
           <div id="settings-email-display" style="font-size:14px;padding:8px 0;color:var(--md-on-surface-variant);"></div>
-        </div>
-        <div class="field">
-          <label class="field-label">Anthropic API Anahtarı <span style="font-weight:400;color:var(--md-on-surface-variant);">(AI aktarım için gerekli)</span></label>
-          <input type="password" class="field-input" id="settings-apikey" placeholder="sk-ant-..." autocomplete="off"
-            oninput="localStorage.setItem('paraplan-apikey',this.value)"
-            style="font-family:monospace;font-size:13px;">
-          <div class="field-helper">API anahtarınız yalnızca bu cihazda saklanır, sunucuya gönderilmez. <a href="https://console.anthropic.com" target="_blank" style="color:var(--md-primary);">console.anthropic.com</a></div>
         </div>
       </div>
 
@@ -1561,6 +1562,26 @@ function saveProfileField(field,val){
   state[field]=val;
   saveState();
   updateProfileUI();
+}
+
+function showProfileEditActions(){
+  const el=document.getElementById('profile-edit-actions');
+  if(el)el.style.display='flex';
+}
+function saveProfileEdit(){
+  state.name=(document.getElementById('settings-name')?.value||'').trim();
+  state.surname=(document.getElementById('settings-surname')?.value||'').trim();
+  saveState();
+  updateProfileUI();
+  const el=document.getElementById('profile-edit-actions');
+  if(el)el.style.display='none';
+  showSnack('Profil kaydedildi');
+}
+function cancelProfileEdit(){
+  const sn=document.getElementById('settings-name');if(sn)sn.value=state.name||'';
+  const ss=document.getElementById('settings-surname');if(ss)ss.value=state.surname||'';
+  const el=document.getElementById('profile-edit-actions');
+  if(el)el.style.display='none';
 }
 
 function toggleProfileDropdown(){
@@ -2479,14 +2500,7 @@ function resetAIImport(){
 
 async function runAIImport(){
   if(!_aiImportFile){showSnack('Önce dosya seçin');return;}
-  const apiKey=localStorage.getItem('paraplan-apikey')||'';
-  if(!apiKey||!apiKey.startsWith('sk-')){
-    document.getElementById('ai-import-result').innerHTML=
-      `<div style="background:var(--md-warning-container);color:var(--md-on-warning-container);border-radius:8px;padding:10px 14px;font-size:13px;">
-        API anahtarı gerekli. <button onclick="showPage('settings')" style="background:none;border:none;cursor:pointer;font-weight:500;color:var(--md-on-warning-container);text-decoration:underline;">Ayarlar'dan girin →</button>
-      </div>`;
-    return;
-  }  const btn=document.getElementById('ai-import-btn');
+  const btn=document.getElementById('ai-import-btn');
   const result=document.getElementById('ai-import-result');
   btn.disabled=true; btn.textContent='Analiz ediliyor...';
   result.innerHTML='<div style="color:var(--md-on-surface-variant);font-size:13px;padding:10px 0;">📡 AI dosyanızı okuyup yorumluyor...</div>';
@@ -2547,11 +2561,12 @@ Yıllık tutarları 12'ye böl, aylık olarak göster.`;
       messages=[{role:'user',content:`Aşağıdaki veriyi analiz et:\n\n${text}`}];
     }
 
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+    // TODO: Supabase Edge Function endpoint'ine bağlanacak
+    const ANALYZE_URL = window.PARAPLAN_ANALYZE_URL || 'https://api.anthropic.com/v1/messages';
+    const resp=await fetch(ANALYZE_URL,{
       method:'POST',
       headers:{
         'Content-Type':'application/json',
-        'x-api-key':apiKey,
         'anthropic-version':'2023-06-01',
         'anthropic-dangerous-direct-browser-access':'true'
       },
@@ -2696,7 +2711,8 @@ function renderSettings(){
   const sn=document.getElementById('settings-name');if(sn&&document.activeElement!==sn)sn.value=state.name||'';
   const ss=document.getElementById('settings-surname');if(ss&&document.activeElement!==ss)ss.value=state.surname||'';
   const sed=document.getElementById('settings-email-display');if(sed)sed.textContent=state.email||'';
-  const sk=document.getElementById('settings-apikey');if(sk&&document.activeElement!==sk)sk.value=localStorage.getItem('paraplan-apikey')||'';
+  // Kaydet/İptal butonlarını gizle
+  const pa=document.getElementById('profile-edit-actions');if(pa)pa.style.display='none';
   // Kişiler — kompakt yatay satır
   document.getElementById('settings-persons').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:8px;">`+
     state.persons.map((p,i)=>`
