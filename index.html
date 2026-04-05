@@ -1513,91 +1513,70 @@ function renderInsights(budget,actual,income,netPosition){
   const fixedRatio=budget.expenseTotal>0?Math.round(fixedBudget/budget.expenseTotal*100):0;
   const savingsRate=income>0?Math.round(actual.savingsTotal/income*100):0;
   const reserveMonths=budget.expenseTotal>0?(state.reserve/budget.expenseTotal).toFixed(1):'—';
-  const cats=[...new Set(items.map(b=>b.cat))];
-  const overBudgetCats=cats.filter(cat=>{
-    const b=budget.byCat[cat]||0,a=actual.byCat[cat]||0;
-    return a>b&&b>0;
-  });
-  const expUsedPct=budget.expenseTotal>0?Math.round(actual.expenseTotal/budget.expenseTotal*100):0;
+  const remaining=budget.expenseTotal-actual.expenseTotal;
+  const rm=parseFloat(reserveMonths)||0;
 
-  const cards=[];
+  // Renk yardımcıları — MD3 token'larına map
+  const netCol=netPosition>=0?'var(--md-success)':'var(--md-error)';
+  const remCol=remaining>=0?'var(--md-success)':'var(--md-error)';
+  const resCol=rm<1?'var(--md-error)':rm<2?'var(--md-warning)':'var(--md-on-surface)';
 
-  // Net pozisyon
-  cards.push({
-    color: netPosition>=0?'success':'error',
-    label: 'Net Pozisyon',
-    value: (netPosition>=0?'+':'')+'₺'+fmt(Math.abs(netPosition)),
-    sub: netPosition>=0?'bu ay fazla':'bu ay açık',
-  });
-
-  // Bütçe kullanımı
-  cards.push({
-    color: expUsedPct>100?'error':expUsedPct>85?'warning':'secondary',
-    label: 'Bütçe Kullanımı',
-    value: '%'+expUsedPct,
-    sub: '₺'+fmt(actual.expenseTotal)+' / ₺'+fmt(budget.expenseTotal),
-  });
-
-  // Birikim
-  if(actual.savingsTotal>0||budget.savingsTotal>0){
-    cards.push({
-      color:'tertiary',
+  const metrics=[
+    {
+      label:'Net pozisyon',
+      value:(netPosition>=0?'+':'')+'₺'+fmt(Math.abs(netPosition)),
+      sub: netPosition>=0?'bu ay fazla':'bu ay açık',
+      col: netCol,
+    },
+    {
+      label:'Harcanan',
+      value:'₺'+fmt(actual.expenseTotal),
+      sub:'%'+(budget.expenseTotal>0?Math.round(actual.expenseTotal/budget.expenseTotal*100):0)+' · ₺'+fmt(Math.abs(remaining))+' '+(remaining>=0?'kalan':'aşım'),
+      col: remaining<0?'var(--md-error)':'var(--md-on-surface)',
+    },
+    {
+      label:'Gelir',
+      value:'₺'+fmt(income),
+      sub:'temel'+(((state.extraIncome||[]).length>0)?' + ek':''),
+      col:'var(--md-on-surface)',
+    },
+    {
       label:'Birikim',
       value:'₺'+fmt(actual.savingsTotal||0),
-      sub: savingsRate>0?'gelirin %'+savingsRate+'i':'bütçe: ₺'+fmt(budget.savingsTotal),
-    });
-  }
-
-  // Rezerv yeterliliği
-  if(state.reserve>0){
-    const rm=parseFloat(reserveMonths);
-    cards.push({
-      color:rm<2?'warning':rm<1?'error':'primary',
+      sub:savingsRate>0?'gelirin %'+savingsRate+'i':'hedef: ₺'+fmt(budget.savingsTotal||0),
+      col:'var(--md-on-surface)',
+    },
+    {
       label:'Rezerv',
-      value:reserveMonths+' aylık',
-      sub:'₺'+fmt(state.reserve)+' havuz',
-    });
-  }
-
-  // Sabit gider oranı
-  if(budget.expenseTotal>0){
-    cards.push({
-      color:fixedRatio>75?'warning':'secondary',
-      label:'Sabit Gider',
+      value:reserveMonths+' ay',
+      sub:'₺'+fmt(state.reserve||0)+' havuz',
+      col: resCol,
+    },
+    {
+      label:'Sabit gider',
       value:'%'+fixedRatio,
       sub:'₺'+fmt(fixedBudget)+' / ay',
-    });
-  }
+      col:'var(--md-on-surface)',
+    },
+  ];
 
-  // Aşılan kategoriler
-  if(overBudgetCats.length>0){
-    cards.push({
-      color:'error',
-      label:'Aşım',
-      value:overBudgetCats.length+' kategori',
-      sub:overBudgetCats.slice(0,2).map(c=>(CAT_EMOJIS[c]||'')+''+c).join(', ')+(overBudgetCats.length>2?' +'+( overBudgetCats.length-2):''),
-    });
-  }
-
-  const colorMap={
-    success:'--md-success-container,--md-on-success-container',
-    error:'--md-error-container,--md-on-error-container',
-    warning:'--md-warning-container,--md-on-warning-container',
-    primary:'--md-primary-container,--md-on-primary-container',
-    secondary:'--md-surface-container,--md-on-surface',
-    tertiary:'--md-tertiary-container,--md-on-tertiary-container',
-  };
-
-  el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;">
-    ${cards.map(c=>{
-      const [bg,fg]=(colorMap[c.color]||colorMap.secondary).split(',');
-      return `<div style="background:var(${bg});border-radius:12px;padding:14px 16px;">
-        <div style="font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(${fg});opacity:.65;margin-bottom:6px;">${esc(c.label)}</div>
-        <div style="font-size:19px;font-weight:600;color:var(${fg});line-height:1.2;">${esc(c.value)}</div>
-        <div style="font-size:11px;color:var(${fg});opacity:.7;margin-top:3px;">${esc(c.sub)}</div>
-      </div>`;
-    }).join('')}
-  </div>`;
+  el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));background:var(--md-surface-container-low);border:1px solid var(--md-outline-variant);border-radius:var(--shape-medium);overflow:hidden;margin-bottom:16px;">
+    ${metrics.map((m,i)=>`
+      <div style="padding:14px 16px;${i<metrics.length-1?'border-right:1px solid var(--md-outline-variant);':''}">
+        <div style="font-size:10px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--md-on-surface-variant);margin-bottom:5px;">${esc(m.label)}</div>
+        <div style="font-size:17px;font-weight:500;color:${m.col};line-height:1.2;margin-bottom:3px;">${esc(m.value)}</div>
+        <div style="font-size:11px;color:var(--md-on-surface-variant);">${esc(m.sub)}</div>
+      </div>`).join('')}
+  </div>`+
+  // Aşım uyarısı — varsa şeridin altında tek satır
+  (()=>{
+    const cats=[...new Set(items.map(b=>b.cat))];
+    const over=cats.filter(cat=>(actual.byCat[cat]||0)>(budget.byCat[cat]||0)&&(budget.byCat[cat]||0)>0);
+    if(!over.length)return'';
+    return`<div style="background:var(--md-error-container);border-radius:var(--shape-small);padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--md-on-error-container);">
+      <strong>${over.length} kategori bütçeyi aştı:</strong> ${over.map(c=>(CAT_EMOJIS[c]||'')+'&nbsp;'+esc(c)).join(' · ')}
+    </div>`;
+  })();
 }
 
 // ═══════════════════════════════════════════════════════
