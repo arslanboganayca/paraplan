@@ -4,8 +4,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Paraplan — Aile Bütçe Planlayıcısı</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta name="description" content="Ailenizin aylık bütçesini planlayın, harcamalarınızı takip edin ve nakit akışınızı 18 ay önceden görün. Ücretsiz aile bütçe uygulaması.">
+<meta name="keywords" content="bütçe planlayıcı, aile bütçesi, harcama takibi, nakit akışı, kişisel finans, para yönetimi">
+<meta name="author" content="Paraplan">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://paraplan-three.vercel.app/">
+
+<!-- Open Graph (sosyal medya paylaşımı) -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://paraplan-three.vercel.app/">
+<meta property="og:title" content="Paraplan — Aile Bütçe Planlayıcısı">
+<meta property="og:description" content="Ailenizin aylık bütçesini planlayın, harcamalarınızı takip edin ve nakit akışınızı 18 ay önceden görün.">
+<meta property="og:locale" content="tr_TR">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Paraplan — Aile Bütçe Planlayıcısı">
+<meta name="twitter:description" content="Ailenizin aylık bütçesini planlayın, harcamalarınızı takip edin ve nakit akışınızı 18 ay önceden görün.">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Serif:wght@400;600&display=swap" rel="stylesheet">
 <style>
 /* ══════════════════════════════════════
@@ -54,33 +71,27 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Roboto',sans-serif;background:var(--md-surface-dim);color:var(--md-on-surface);min-height:100vh;font-size:14px;line-height:1.5;}
 
-/* ── NAV DRAWER ── */
-.nav-drawer{width:var(--nav-width);background:var(--md-surface-container-low);border-radius:0 var(--shape-xl) var(--shape-xl) 0;display:flex;flex-direction:column;position:fixed;height:100vh;top:0;left:0;z-index:200;transition:transform .3s cubic-bezier(.4,0,.2,1);overflow:hidden;}
-.nav-header{padding:28px 28px 16px;display:flex;align-items:center;gap:12px;}
-.nav-header-icon{width:40px;height:40px;border-radius:var(--shape-full);background:var(--md-primary-container);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
-.nav-header-text .app-name{font-family:'Roboto Serif',serif;font-size:14px;font-weight:600;color:var(--md-on-surface);line-height:1.2;}
-.nav-header-text .app-sub{font-size:11px;color:var(--md-on-surface-variant);margin-top:2px;}
-.nav-section-lbl{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--md-on-surface-variant);padding:20px 28px 8px;}
-.nav-item{display:flex;align-items:center;gap:12px;padding:0 28px;height:56px;cursor:pointer;border-radius:0 var(--shape-full) var(--shape-full) 0;margin-right:12px;position:relative;color:var(--md-on-surface-variant);font-size:14px;font-weight:500;transition:background .15s;user-select:none;}
-.nav-item:hover{background:rgba(0,106,106,.08);}
-.nav-item.active{background:var(--md-secondary-container);color:var(--md-on-secondary-container);}
-.nav-item .nav-ic{font-size:20px;width:24px;text-align:center;flex-shrink:0;}
-.nav-badge{position:absolute;right:24px;min-width:20px;height:20px;background:var(--md-error);color:var(--md-on-error);border-radius:var(--shape-full);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 5px;}
-.nav-footer{margin-top:auto;padding:16px 24px 24px;border-top:1px solid var(--md-outline-variant);}
-.nav-footer-row{display:flex;justify-content:space-between;font-size:12px;color:var(--md-on-surface-variant);padding:4px 0;}
-.nav-footer-val{font-weight:500;}
-.nav-footer-val.neg{color:var(--md-error);}
-.nav-footer-val.pos{color:var(--md-success);}
+/* ── TOP BAR — her zaman görünür ── */
+.top-bar{height:56px;display:flex;align-items:center;padding:0 16px;position:fixed;top:0;left:0;right:0;z-index:100;background:var(--md-surface-container-low);border-bottom:1px solid var(--md-outline-variant);}
+.top-bar-title{font-family:'Roboto Serif',serif;font-size:20px;font-weight:600;flex:1;color:var(--md-on-surface);}
+.top-avatar-btn{width:36px;height:36px;border-radius:50%;background:var(--md-primary-container);color:var(--md-on-primary-container);border:none;cursor:pointer;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--md-surface-container-low);border-top:1px solid var(--md-outline-variant);display:none;height:72px;padding-bottom:env(safe-area-inset-bottom,0);}
+.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--md-on-surface-variant);font-size:11px;font-weight:500;transition:color .15s;user-select:none;-webkit-tap-highlight-color:transparent;}
+.bn-item.active{color:var(--md-primary);}
+.bn-indicator{width:64px;height:32px;border-radius:16px;display:flex;align-items:center;justify-content:center;transition:background .15s;}
+.bn-item.active .bn-indicator{background:var(--md-secondary-container);}
+.bn-ic{font-size:20px;line-height:1;}
 
 /* ── MAIN ── */
-.main-content{margin-left:var(--nav-width);flex:1;min-height:100vh;padding:24px;max-width:calc(100vw - var(--nav-width));}
+.main-content{margin-left:0;max-width:100vw;padding:68px 24px 88px;min-height:100vh;}
+@media(min-width:700px){.main-content{max-width:780px;margin:0 auto;padding:68px 32px 88px;}}
 
-/* ── TOP APP BAR ── */
-.top-bar{height:64px;display:none;align-items:center;gap:4px;padding:0 4px;position:fixed;top:0;left:0;right:0;z-index:100;background:var(--md-surface-container);box-shadow:var(--elev2);}
+/* ── TOP APP BAR (old, kept for icon-btn) ── */
 .icon-btn{width:48px;height:48px;border-radius:var(--shape-full);border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--md-on-surface);transition:background .15s;}
 .icon-btn:hover{background:rgba(25,28,28,.08);}
-.top-bar-title{font-size:18px;font-weight:400;flex:1;padding:0 4px;}
-.mob-scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.32);z-index:150;}
+.mob-scrim{display:none;}
 
 /* ── PAGE ── */
 .page{display:none;}
@@ -151,7 +162,7 @@ body{font-family:'Roboto',sans-serif;background:var(--md-surface-dim);color:var(
 .btn-icon:hover{background:rgba(25,28,28,.08);}
 
 /* ── FAB ── */
-.fab{position:fixed;bottom:24px;right:24px;z-index:190;background:var(--md-primary-container);color:var(--md-on-primary-container);border:none;border-radius:var(--shape-lg);padding:16px 20px;display:flex;align-items:center;gap:12px;font-family:'Roboto',sans-serif;font-size:14px;font-weight:500;cursor:pointer;box-shadow:var(--elev3);transition:all .2s;}
+.fab{position:fixed;bottom:80px;right:20px;z-index:190;background:var(--md-primary-container);color:var(--md-on-primary-container);border:none;border-radius:var(--shape-lg);padding:16px 20px;display:flex;align-items:center;gap:12px;font-family:'Roboto',sans-serif;font-size:14px;font-weight:500;cursor:pointer;box-shadow:var(--elev3);transition:all .2s;}
 .fab:hover{box-shadow:var(--elev3);filter:brightness(0.97);}
 .fab-icon{font-size:22px;line-height:1;}
 
@@ -251,10 +262,19 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
 .list-tile-supporting{font-size:12px;color:var(--md-on-surface-variant);}
 .list-tile-trailing{flex-shrink:0;}
 
+/* ── GOOGLE SIGN-IN ── */
+.google-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:12px 24px;border:1px solid var(--md-outline-variant);border-radius:var(--shape-full);background:#fff;cursor:pointer;font-family:'Roboto',sans-serif;font-size:15px;font-weight:500;color:#3c4043;transition:box-shadow .2s,background .15s;margin-bottom:16px;}
+.google-btn:hover{box-shadow:0 1px 4px rgba(0,0,0,.2);background:#f8f8f8;}
+.google-btn svg{flex-shrink:0;}
+.auth-divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--md-on-surface-variant);font-size:12px;}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--md-outline-variant);}
+
 /* ── SETUP ── */
 .setup-step{display:none;}
 .setup-step.active{display:block;}
-#onboarding{min-height:100vh;background:var(--md-surface-dim);display:flex;align-items:center;justify-content:center;padding:24px;}
+#onboarding{min-height:100vh;background:var(--md-surface-dim);display:none;align-items:center;justify-content:center;padding:24px;}
+#email-screen{display:none;min-height:100vh;background:var(--md-surface-dim);align-items:center;justify-content:center;padding:24px;}
+#onboarding{min-height:100vh;background:var(--md-surface-dim);display:none;align-items:center;justify-content:center;padding:24px;}
 .setup-card{background:var(--md-surface-container-lowest);border-radius:var(--shape-xl);padding:32px;width:100%;max-width:680px;box-shadow:var(--elev3);}
 .setup-headline{font-family:'Roboto Serif',serif;font-size:32px;font-weight:600;color:var(--md-primary);line-height:1.1;margin-bottom:8px;}
 .setup-body{font-size:14px;color:var(--md-on-surface-variant);margin-bottom:28px;}
@@ -292,265 +312,94 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--md-outline-variant);border-radius:3px;}
 
-/* ── BOTTOM NAVIGATION ── */
-.bottom-nav{
-  display:none;position:fixed;bottom:0;left:0;right:0;height:64px;
-  background:var(--md-surface-container-low);
-  border-top:1px solid var(--md-outline-variant);
-  z-index:200;
-  padding-bottom:env(safe-area-inset-bottom,0px);
-}
-.bottom-nav-inner{display:flex;height:64px;}
-.bnav-item{
-  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:3px;cursor:pointer;border:none;background:transparent;
-  color:var(--md-on-surface-variant);font-size:10px;font-weight:500;
-  letter-spacing:.02em;transition:color .15s;padding:8px 4px;min-width:0;
-}
-.bnav-item.active{color:var(--md-primary);}
-.bnav-item.active .bnav-pill{background:var(--md-primary-container);}
-.bnav-pill{
-  width:48px;height:28px;border-radius:var(--shape-full);
-  display:flex;align-items:center;justify-content:center;
-  transition:background .15s;font-size:18px;
-}
-.bnav-lbl{font-size:10px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:64px;}
-
-/* ── FAB SPEED DIAL ── */
-.fab-wrap{position:fixed;bottom:80px;right:20px;z-index:190;display:none;flex-direction:column-reverse;align-items:flex-end;gap:12px;}
-.fab-wrap.desktop{bottom:24px;}
-.fab-main{
-  background:var(--md-primary-container);color:var(--md-on-primary-container);
-  border:none;border-radius:var(--shape-lg);padding:16px 20px;
-  display:flex;align-items:center;gap:12px;
-  font-family:'Roboto',sans-serif;font-size:14px;font-weight:500;cursor:pointer;
-  box-shadow:var(--elev3);transition:all .2s;white-space:nowrap;
-}
-.fab-main:hover{filter:brightness(.97);}
-.fab-mini-wrap{display:flex;flex-direction:column;gap:8px;align-items:flex-end;
-  transition:all .2s;overflow:hidden;max-height:0;opacity:0;pointer-events:none;}
-.fab-mini-wrap.open{max-height:200px;opacity:1;pointer-events:auto;}
-.fab-mini{
-  display:flex;align-items:center;gap:10px;padding:10px 16px 10px 14px;
-  border:none;border-radius:var(--shape-full);cursor:pointer;
-  font-family:'Roboto',sans-serif;font-size:13px;font-weight:500;
-  box-shadow:var(--elev2);transition:all .15s;white-space:nowrap;
-}
-.fab-mini-income{background:var(--md-success-container);color:var(--md-on-success-container);}
-.fab-mini-expense{background:var(--md-error-container);color:var(--md-on-error-container);}
-.fab-mini:hover{filter:brightness(.96);}
-.fab-scrim{display:none;position:fixed;inset:0;z-index:180;}
-.fab-scrim.open{display:block;}
-
-/* ── OFFLINE BANNER ── */
-#offline-banner{
-  display:none;position:fixed;top:0;left:0;right:0;z-index:500;
-  background:var(--md-error);color:var(--md-on-error);
-  padding:10px 16px;font-size:13px;font-weight:500;
-  text-align:center;letter-spacing:.01em;
-  box-shadow:var(--elev2);
-}
-
 /* ── RESPONSIVE ── */
 @media(max-width:960px){
-  .nav-drawer{transform:translateX(-100%);}
-  .nav-drawer.open{transform:none;}
-  .mob-scrim.open{display:block;}
-  .top-bar{display:flex;}
-  .main-content{margin-left:0;max-width:100vw;padding:80px 16px calc(80px + env(safe-area-inset-bottom,0px));}
-  .bottom-nav{display:block;}
-  .fab-wrap{display:flex;}
-  .fab-wrap.desktop{display:none;}
   .grid4{grid-template-columns:repeat(2,1fr);}
-}
-@media(min-width:961px){
-  .fab-wrap.desktop{display:flex;}
 }
 @media(max-width:600px){
   .grid2{grid-template-columns:1fr;}
   .grid3{grid-template-columns:1fr;}
   .grid4{grid-template-columns:repeat(2,1fr);}
-  .main-content{padding:72px 12px calc(80px + env(safe-area-inset-bottom,0px));}
+  .main-content{padding:60px 12px 88px;}
   .setup-card{padding:24px;}
   .dialog{width:95vw;border-radius:var(--shape-lg);}
-  .bnav-lbl{display:none;}
-  .bnav-pill{width:56px;height:32px;}
 }
-/* ── LOGIN SCREEN (Paraplan klasik) ── */
-#login-screen{
-  display:none;position:fixed;inset:0;z-index:9999;
-  background:#E8EEED;
-  align-items:center;justify-content:center;padding:24px;
-}
-.login-card{
-  background:#fff;
-  border-radius:24px;
-  padding:40px 32px 32px;width:100%;max-width:420px;
-  box-shadow:0 8px 32px rgba(0,50,50,.08),0 2px 8px rgba(0,0,0,.04);
-  text-align:center;
-}
-.login-logo-wrap{
-  width:72px;height:72px;margin:0 auto 20px;border-radius:50%;
-  background:var(--md-primary-container);
-  display:flex;align-items:center;justify-content:center;
-  font-size:36px;line-height:1;
-}
-.login-title{font-family:'Roboto Serif',serif;font-size:26px;font-weight:600;
-  color:#004D4D;margin:0 0 12px;line-height:1.25;}
-.login-disclaimer{
-  font-size:14px;color:#3F4948;line-height:1.5;margin:0 0 28px;text-align:center;
-}
-.btn-google{
-  display:flex;align-items:center;justify-content:center;gap:10px;
-  width:100%;padding:14px 20px;border-radius:14px;
-  border:1.5px solid #BEC9C7;background:#fff;
-  font-size:15px;font-weight:500;color:#191C1C;cursor:pointer;
-  transition:background .15s,box-shadow .15s;margin-bottom:8px;
-}
-.btn-google:hover{background:#F4FAFA;box-shadow:var(--shadow-1);}
-.btn-google svg{flex-shrink:0;}
-.login-divider{display:flex;align-items:center;gap:12px;margin:22px 0 20px;
-  color:#5F6368;font-size:13px;}
-.login-divider::before,.login-divider::after{content:'';flex:1;
-  height:1px;background:#BEC9C7;}
-.login-email-form{display:flex;flex-direction:column;gap:12px;text-align:left;}
-.login-field-label{font-size:12px;font-weight:500;color:#004D4D;margin-bottom:4px;}
-.login-email-input{
-  width:100%;padding:14px 16px;border-radius:12px;border:2px solid #006A6A;
-  font-size:15px;font-family:inherit;background:#fff;
-}
-.login-email-input::placeholder{color:#6F7978;}
-.login-email-input:focus{outline:none;box-shadow:0 0 0 3px rgba(0,106,106,.2);}
-.btn-email-continue{
-  width:100%;padding:14px 20px;border-radius:14px;border:none;cursor:pointer;
-  background:var(--md-primary-container);color:#002020;
-  font-size:16px;font-weight:700;font-family:'Roboto',sans-serif;
-  margin-top:4px;transition:filter .15s;
-}
-.btn-email-continue:hover{filter:brightness(.97);}
-.login-footer-note{
-  font-size:12px;color:#5F6368;line-height:1.45;margin-top:24px;text-align:center;
-}
-.login-advanced-toggle{
-  background:none;border:none;color:#006A6A;font-size:13px;font-weight:500;
-  cursor:pointer;padding:8px 0;margin-top:4px;text-align:center;width:100%;
-}
-.login-password-block{display:none;margin-top:8px;padding-top:12px;border-top:1px solid var(--md-outline-variant);}
-.login-password-block.open{display:block;}
-.login-error{background:var(--md-error-container);color:var(--md-on-error-container);
-  padding:10px 14px;border-radius:var(--shape-sm);font-size:13px;}
-.login-switch{font-size:13px;color:var(--md-on-surface-variant);margin-top:8px;text-align:center;}
-.login-switch button{background:none;border:none;color:var(--md-primary);
-  cursor:pointer;font-size:13px;font-weight:500;padding:0;}
-/* user avatar in nav */
-.nav-user{display:flex;align-items:center;gap:10px;padding:12px 16px;
-  border-top:1px solid var(--md-outline-variant);margin-top:8px;}
-.nav-user-avatar{width:34px;height:34px;border-radius:50%;
-  background:var(--md-primary-container);display:flex;align-items:center;
-  justify-content:center;font-size:14px;font-weight:600;
-  color:var(--md-on-primary-container);flex-shrink:0;overflow:hidden;}
-.nav-user-avatar img{width:100%;height:100%;object-fit:cover;}
-.nav-user-info{flex:1;min-width:0;}
-.nav-user-name{font-size:13px;font-weight:500;color:var(--md-on-surface);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.nav-user-email{font-size:11px;color:var(--md-on-surface-variant);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.plan-badge{
-  display:inline-flex;align-items:center;margin-top:6px;padding:2px 8px;border-radius:var(--shape-full);
-  font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
-}
-.plan-badge-free{background:var(--md-surface-container-highest);color:var(--md-on-surface-variant);}
-.plan-badge-pro{background:linear-gradient(135deg,#006A6A,#004D4D);color:#fff;}
 </style>
 </head>
 <body>
 
-<!-- LOGIN SCREEN -->
-<div id="login-screen">
-  <div class="login-card">
-    <div id="login-busy-panel" style="display:none;text-align:center;padding:8px 0 24px;">
-      <div class="login-logo-wrap">💰</div>
-      <p class="login-disclaimer" style="margin-top:16px;font-weight:500;">Google ile bağlanılıyor…</p>
-      <p style="font-size:13px;color:#5F6368;margin-top:8px;">Oturum kuruluyor, lütfen bekleyin.</p>
-    </div>
-    <div id="login-interactive">
-    <div class="login-logo-wrap">💰</div>
-    <h1 class="login-title">Paraplan'a Hoş Geldiniz</h1>
-    <p class="login-disclaimer">Verileriniz öncelikle bu cihazda saklanır. Pro üyelikte buluta da yedeklenir.</p>
-    <button type="button" class="btn-google" onclick="signInWithGoogle()">
-      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.859-3.048.859-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.706c-.18-.54-.282-1.117-.282-1.706s.102-1.166.282-1.706V4.962H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.038l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.962L3.964 7.294C4.672 5.167 6.656 3.58 9 3.58z"/></svg>
-      Google ile Giriş Yap
-    </button>
-    <div class="login-divider"><span>veya email ile devam et</span></div>
-    <div class="login-email-form">
-      <div>
-        <div class="login-field-label">Email adresi</div>
-        <input type="email" id="login-email" class="login-email-input" placeholder="ornek@email.com" autocomplete="email">
-      </div>
-      <div id="login-error" class="login-error" style="display:none;"></div>
-      <button type="button" class="btn-email-continue" onclick="signInWithEmailMagicLink()">Devam Et →</button>
-      <button type="button" class="login-advanced-toggle" onclick="toggleLoginPasswordBlock()">Şifre ile giriş veya kayıt</button>
-      <div id="login-password-block" class="login-password-block">
-        <input type="password" id="login-password" class="field-input" placeholder="Şifre (min. 6 karakter)" autocomplete="current-password">
-        <button type="button" class="btn btn-filled w100 mt8" onclick="signInWithEmail()">Giriş Yap</button>
-        <div class="login-switch">Hesabın yok mu? <button type="button" onclick="signUpWithEmail()">Kayıt ol</button></div>
-      </div>
-    </div>
-    <p class="login-footer-note">Bu uygulama verilerinizi bu tarayıcıda saklar. Ücretsiz planda farklı bir cihazda açarsanız aynı veri görünmeyebilir; Pro ile eşleşir.</p>
-    </div>
-  </div>
-</div>
-
-<!-- OFFLINE BANNER -->
-<div id="offline-banner">📵 İnternet bağlantısı yok — veriler yerel olarak saklanıyor</div>
-
-<!-- TOP BAR (mobile) -->
-<header class="top-bar" id="top-bar">
-  <button class="icon-btn" onclick="toggleNav()">☰</button>
+<!-- TOP BAR -->
+<header class="top-bar" id="top-bar" style="display:none;">
   <span class="top-bar-title" id="top-bar-title">Genel Bakış</span>
+  <button class="top-avatar-btn" id="top-avatar" onclick="showPage('settings')" title="Ayarlar">?</button>
 </header>
-<div class="mob-scrim" id="mob-scrim" onclick="toggleNav()"></div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav" id="bottom-nav">
+  <div class="bn-item active" data-page="dashboard" onclick="showPage('dashboard')">
+    <div class="bn-indicator"><span class="bn-ic">◎</span></div>
+    <span>Genel</span>
+  </div>
+  <div class="bn-item" data-page="budget" onclick="showPage('budget')">
+    <div class="bn-indicator"><span class="bn-ic">▦</span></div>
+    <span>Bütçe</span>
+  </div>
+  <div class="bn-item" data-page="transactions" onclick="showPage('transactions')">
+    <div class="bn-indicator"><span class="bn-ic">↕</span></div>
+    <span>Harcama</span>
+  </div>
+  <div class="bn-item" data-page="projection" onclick="showPage('projection')">
+    <div class="bn-indicator"><span class="bn-ic">↗</span></div>
+    <span>Projeksiyon</span>
+  </div>
+  <div class="bn-item" data-page="settings" onclick="showPage('settings')">
+    <div class="bn-indicator"><span class="bn-ic">⚙</span></div>
+    <span>Ayarlar</span>
+  </div>
+</nav>
 
 <!-- SNACKBAR -->
 <div id="snackbar"></div>
 
-<!-- FAB SPEED DIAL (mobile: bottom nav offset, desktop: normal) -->
-<div class="fab-scrim" id="fab-scrim" onclick="closeFabDial()"></div>
-<div class="fab-wrap" id="fab-wrap" style="display:none;">
-  <button class="fab-main" onclick="toggleFabDial()">
-    <span style="font-size:22px;line-height:1;" id="fab-main-icon">+</span>
-    <span id="fab-main-lbl">İşlem Ekle</span>
-  </button>
-  <div class="fab-mini-wrap" id="fab-mini-wrap">
-    <button class="fab-mini fab-mini-income" onclick="closeFabDial();openTxModal('income')">
-      <span>💚</span><span>Gelir Ekle</span>
+<!-- FAB -->
+<button class="fab" onclick="openTxModal()" id="fab">
+  <span class="fab-icon">+</span>
+  <span>Harcama Ekle</span>
+</button>
+
+<!-- ══ EMAIL SCREEN ══ -->
+<div id="email-screen">
+  <div class="setup-card" style="max-width:480px;margin:0 auto;text-align:center;">
+    <div style="width:72px;height:72px;border-radius:var(--shape-full);background:var(--md-primary-container);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 24px;">💰</div>
+    <div class="setup-headline" style="font-size:28px;">Paraplan'a<br>Hoş Geldiniz</div>
+    <p class="setup-body" style="margin-top:8px;margin-bottom:24px;">Verileriniz yalnızca bu cihazda saklanır, hiçbir yere gönderilmez.</p>
+
+    <!-- Google Sign-In -->
+    <button class="google-btn" onclick="signInWithGoogle()">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+      Google ile Giriş Yap
     </button>
-    <button class="fab-mini fab-mini-expense" onclick="closeFabDial();openTxModal('expense')">
-      <span>💸</span><span>Harcama Ekle</span>
+
+    <div class="auth-divider">veya email ile devam et</div>
+
+    <div class="field mb16" style="text-align:left;">
+      <label class="field-label">Email adresi</label>
+      <input type="email" class="field-input" id="email-input"
+        placeholder="ornek@email.com"
+        onkeydown="if(event.key==='Enter')submitEmail();"
+        style="font-size:15px;">
+      <div class="field-helper" id="email-helper"></div>
+    </div>
+
+    <button class="btn btn-tonal w100" style="justify-content:center;padding:12px 24px;font-size:15px;" onclick="submitEmail()">
+      Devam Et →
     </button>
+
+    <p style="font-size:11px;color:var(--md-on-surface-variant);margin-top:20px;line-height:1.6;">
+      Bu uygulama verilerinizi yalnızca bu tarayıcıda saklar.<br>Farklı bir cihazda açarsanız veriler görünmez.
+    </p>
   </div>
 </div>
-
-<!-- BOTTOM NAVIGATION (mobile only) -->
-<nav class="bottom-nav" id="bottom-nav" style="display:none;">
-  <div class="bottom-nav-inner">
-    <button class="bnav-item active" data-page="dashboard" onclick="showPage('dashboard')">
-      <div class="bnav-pill">◎</div><span class="bnav-lbl">Genel</span>
-    </button>
-    <button class="bnav-item" data-page="budget" onclick="showPage('budget')">
-      <div class="bnav-pill">▦</div><span class="bnav-lbl">Bütçe</span>
-    </button>
-    <button class="bnav-item" data-page="transactions" onclick="showPage('transactions')">
-      <div class="bnav-pill">↕</div><span class="bnav-lbl">Harcama</span>
-    </button>
-    <button class="bnav-item" data-page="projection" onclick="showPage('projection')">
-      <div class="bnav-pill">↗</div><span class="bnav-lbl">Projeksiyon</span>
-    </button>
-    <button class="bnav-item" data-page="settings" onclick="showPage('settings')">
-      <div class="bnav-pill">⚙</div><span class="bnav-lbl">Ayarlar</span>
-    </button>
-  </div>
-</nav>
 
 <!-- ══ ONBOARDING ══ -->
 <div id="onboarding">
@@ -569,11 +418,11 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
         <div class="banner info mb16"><span class="banner-icon">ℹ️</span><div class="banner-body"><div class="banner-title">Örnek veri yüklendi</div><div class="banner-msg">Kişi adlarını ve tutarları düzenleyin, ya da olduğu gibi ilerleyin.</div></div></div>
         <div class="field mb16">
           <label class="field-label">Aylık temel gelir (₺)</label>
-          <input type="number" class="field-input" id="s-income" min="0" placeholder="80000">
+          <input type="number" class="field-input" id="s-income" min="0" placeholder="83000">
         </div>
         <div class="field mb16">
           <label class="field-label">Nakit havuzu / birikim (₺)</label>
-          <input type="number" class="field-input" id="s-reserve" min="0" placeholder="150000">
+          <input type="number" class="field-input" id="s-reserve" min="0" placeholder="55000">
           <div class="field-helper">Şu an elinizde olan toplam para. Projeksiyon buradan başlar.</div>
         </div>
         <div class="mb16">
@@ -611,18 +460,16 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
     <div class="setup-step" id="step3">
       <div class="setup-card" style="max-width:900px;margin:0 auto;">
         <div class="setup-headline">Bütçe Kalemleri</div>
-        <p class="setup-body">36 örnek kalem yüklendi (100k gelir, 15k birikim hedefi). Tutarları düzenleyin.</p>
+        <p class="setup-body">28 örnek kalem yüklendi. Tutarları ve türleri düzenleyin.</p>
         <div class="progress-stepper">
           <div class="step-dot done">✓</div><div class="step-line done"></div>
           <div class="step-dot done">✓</div><div class="step-line done"></div>
           <div class="step-dot done current">3</div><div class="step-line"></div>
           <div class="step-dot">4</div>
         </div>
-        <div class="banner info mb8"><span class="banner-icon">💡</span><div class="banner-body"><div class="banner-title">Alt kategori nasıl seçilir?</div><div class="banner-msg">Her satırda <strong>Kategori</strong> seçince <strong>Alt Kategori</strong> dropdown'ı otomatik güncellenir. Listede yoksa "+ Yeni..." seçip kendiniz yazabilirsiniz.</div></div></div>
-        <div class="banner warning mb16"><span class="banner-icon">🔒</span><div class="banner-body"><div class="banner-title">Sabit mi, değişken mi?</div><div class="banner-msg">Sabit: Kira, aidat gibi her ay aynı. Değişken: Market, eğlence gibi kontrol edilebilir.</div></div></div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Kategori</th><th>Alt Kategori ▾</th><th>Kişi</th><th>Tür</th><th class="text-right">Bütçe (₺)</th><th></th></tr></thead>
+            <thead><tr><th>Kategori</th><th>Alt Kategori</th><th style="text-align:center;white-space:nowrap;font-size:12px;">Sabit Gider</th><th class="text-right">Bütçe (₺)</th><th></th></tr></thead>
             <tbody id="budget-setup-tbody"></tbody>
           </table>
         </div>
@@ -637,7 +484,7 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
     <div class="setup-step" id="step4">
       <div class="setup-card" style="max-width:680px;margin:0 auto;">
         <div class="setup-headline">Planlı Değişiklikler</div>
-        <p class="setup-body" id="step4-body">Gelecekteki değişiklikleri ekleyin veya düzenleyin.</p>
+        <p class="setup-body">2 örnek değişiklik eklendi. Düzenleyin veya yenilerini ekleyin.</p>
         <div class="progress-stepper">
           <div class="step-dot done">✓</div><div class="step-line done"></div>
           <div class="step-dot done">✓</div><div class="step-line done"></div>
@@ -683,36 +530,13 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
 <!-- ══ MAIN APP ══ -->
 <div id="main-app">
 
-  <!-- NAV DRAWER -->
-  <nav class="nav-drawer" id="nav-drawer">
-    <div class="nav-header">
-      <div class="nav-header-icon">💰</div>
-      <div class="nav-header-text">
-        <div class="app-name">Paraplan</div>
-        <div class="app-sub" id="sb-month"></div>
-      </div>
-    </div>
-    <div class="nav-section-lbl">Menü</div>
-    <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')"><span class="nav-ic">◎</span>Genel Bakış</div>
-    <div class="nav-item" data-page="budget" onclick="showPage('budget')"><span class="nav-ic">▦</span>Bütçe</div>
-    <div class="nav-item" data-page="transactions" onclick="showPage('transactions')"><span class="nav-ic">↕</span>Harcamalar</div>
-    <div class="nav-item" data-page="projection" onclick="showPage('projection')"><span class="nav-ic">↗</span>Projeksiyon</div>
-    <div class="nav-item" data-page="settings" onclick="showPage('settings')"><span class="nav-ic">⚙</span>Ayarlar</div>
-    <div class="nav-footer">
-      <div class="nav-footer-row"><span>Gelir</span><span class="nav-footer-val" id="sb-income">—</span></div>
-      <div class="nav-footer-row"><span>Toplam bütçe</span><span class="nav-footer-val" id="sb-budget">—</span></div>
-      <div class="nav-footer-row"><span>Fark</span><span class="nav-footer-val" id="sb-deficit">—</span></div>
-    </div>
-    <div class="nav-user" id="nav-user-area" style="display:none;">
-      <div class="nav-user-avatar" id="nav-user-avatar"></div>
-      <div class="nav-user-info">
-        <div class="nav-user-name" id="nav-user-name"></div>
-        <div class="nav-user-email" id="nav-user-email"></div>
-        <span id="nav-plan-badge" class="plan-badge plan-badge-free" style="display:none;">Ücretsiz</span>
-      </div>
-      <button class="btn-icon" title="Çıkış yap" onclick="signOutUser()" style="color:var(--md-on-surface-variant)">⏏</button>
-    </div>
-  </nav>
+  <!-- hidden elements for JS renderNavFooter compatibility -->
+  <span id="sb-month" style="display:none"></span>
+  <span id="sb-income" style="display:none"></span>
+  <span id="sb-budget" style="display:none"></span>
+  <span id="sb-deficit" style="display:none"></span>
+  <span id="sb-email" style="display:none"></span>
+  <span id="sb-avatar" style="display:none"></span>
 
   <!-- MAIN CONTENT -->
   <div class="main-content">
@@ -725,6 +549,7 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
       <div id="sample-data-banner"></div>
       <div class="month-strip" id="dash-month-bar"></div>
       <div id="dash-alerts" class="mb16"></div>
+      <div id="dash-insights" class="mb16"></div>
       <div class="grid4 mb16" id="dash-kpis"></div>
       <div class="grid2 mb16">
         <div class="card-outlined">
@@ -745,7 +570,7 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
         <div class="section-title">Kategori özeti</div>
         <div class="table-wrap mt8">
           <table>
-            <thead><tr><th>Kategori</th><th>Tür</th><th class="text-right">Bütçe</th><th class="text-right">Harcanan</th><th class="text-right">Kalan</th><th style="min-width:120px">Kullanım</th></tr></thead>
+            <thead><tr><th>Kategori</th><th class="text-right">Bütçe</th><th class="text-right">Harcanan</th><th class="text-right">Kalan</th><th style="min-width:120px">Kullanım</th></tr></thead>
             <tbody id="dash-cat-table"></tbody>
           </table>
         </div>
@@ -758,11 +583,41 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
         <div><div class="page-title">Bütçe</div><div class="page-subtitle">Aylık bütçe kalemleri</div></div>
         <button class="btn btn-filled" onclick="openAddBudgetModal()">+ Kalem ekle</button>
       </div>
+
+      <!-- GELİR PANELİ -->
+      <div class="card-outlined mb16" id="budget-income-panel">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+          <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;">
+            <div>
+              <div style="font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--md-on-surface-variant);margin-bottom:6px;">Aylık gelir</div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-size:14px;color:var(--md-on-surface-variant);">₺</span>
+                <input type="number" class="field-input" id="set-income" oninput="dSaveSettings()" min="0" style="width:120px;padding:7px 10px;font-size:15px;font-weight:600;">
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--md-on-surface-variant);margin-bottom:6px;">Başlangıç havuzu</div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-size:14px;color:var(--md-on-surface-variant);">₺</span>
+                <input type="number" class="field-input" id="set-reserve" oninput="dSaveSettings()" min="0" style="width:120px;padding:7px 10px;font-size:15px;font-weight:600;">
+              </div>
+              <div class="field-helper" id="reserve-hint" style="font-size:11px;margin-top:4px;"></div>
+            </div>
+            <div id="dash-total-income-badge" style="align-self:center;"></div>
+          </div>
+          <button class="btn btn-text btn-sm" onclick="toggleDashExtraIncome()" id="dash-extra-toggle" style="white-space:nowrap;">+ Ek gelir</button>
+        </div>
+        <div id="dash-extra-income-panel" style="display:none;margin-top:14px;border-top:1px solid var(--md-outline-variant);padding-top:14px;">
+          <div id="extra-income-list"></div>
+          <button class="btn btn-text btn-sm mt8" onclick="addExtraIncome()">+ Ekle</button>
+        </div>
+      </div>
+
       <div class="month-strip" id="budget-month-bar"></div>
       <div class="card-outlined">
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Kategori</th><th>Alt Kategori</th><th>Kişi</th><th>Tür</th><th class="text-right">Bütçe</th><th class="text-right">Harcanan</th><th class="text-right">Fark</th><th></th><th></th></tr></thead>
+            <thead><tr><th>Kategori</th><th>Alt Kategori</th><th style="white-space:nowrap;font-size:12px;">Sabit Gider</th><th class="text-right">Bütçe</th><th class="text-right">Harcanan</th><th class="text-right">Fark</th><th></th></tr></thead>
             <tbody id="budget-tbody"></tbody>
           </table>
         </div>
@@ -810,64 +665,44 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
     <!-- AYARLAR -->
     <div class="page" id="page-settings">
       <div class="page-header"><div class="page-title">Ayarlar</div></div>
-      <div class="grid2 mb16">
-        <div class="card-outlined">
-          <div class="section-title">Gelir</div>
-          <div class="field mb12">
-            <label class="field-label">Aylık temel gelir (₺)</label>
-            <input type="number" class="field-input" id="set-income" oninput="dSaveSettings()" min="0">
+
+      <!-- Kullanıcı profil kartı -->
+      <div class="card-outlined mb16" id="settings-profile-card">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div id="settings-avatar" style="width:48px;height:48px;border-radius:50%;background:var(--md-primary-container);color:var(--md-on-primary-container);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;flex-shrink:0;">?</div>
+          <div style="flex:1;min-width:0;">
+            <div id="settings-email-display" style="font-size:14px;font-weight:500;color:var(--md-on-surface);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+            <div style="display:flex;gap:16px;margin-top:6px;">
+              <div><div style="font-size:10px;color:var(--md-on-surface-variant);">Gelir</div><div style="font-size:13px;font-weight:500;" id="settings-income-display">—</div></div>
+              <div><div style="font-size:10px;color:var(--md-on-surface-variant);">Bütçe</div><div style="font-size:13px;font-weight:500;" id="settings-budget-display">—</div></div>
+              <div><div style="font-size:10px;color:var(--md-on-surface-variant);">Fark</div><div id="settings-deficit-display" style="font-size:13px;font-weight:500;">—</div></div>
+            </div>
           </div>
-          <div class="field">
-            <label class="field-label">Nakit havuzu (₺)</label>
-            <input type="number" class="field-input" id="set-reserve" oninput="dSaveSettings()" min="0">
-            <div class="field-helper" id="reserve-hint"></div>
-          </div>
-        </div>
-        <div class="card-outlined">
-          <div class="section-title">Kişiler</div>
-          <div id="settings-persons"></div>
-          <button class="btn btn-text btn-sm mt8" onclick="addPersonSetting()">+ Kişi ekle</button>
+          <button class="btn btn-outlined btn-sm" onclick="logoutUser()">Çıkış</button>
         </div>
       </div>
+      <!-- Kategoriler & Alt Kategoriler — tam genişlik -->
       <div class="card-outlined mb16">
-        <div class="flex items-center justify-between mb16">
-          <div class="section-title" style="margin:0">Ek Gelir Kaynakları</div>
-          <button class="btn btn-text btn-sm" onclick="addExtraIncome()">+ Ekle</button>
+        <div class="flex items-center justify-between mb8">
+          <div class="section-title" style="margin:0;">Kategoriler &amp; Alt Kategoriler</div>
+          <button class="btn btn-text btn-sm" onclick="addCatSetting()">+ Kategori ekle</button>
         </div>
-        <div id="extra-income-list"></div>
-      </div>
-      <div class="card-outlined mb16">
-        <div class="section-title">Kategoriler</div>
         <div id="settings-cats"></div>
-        <button class="btn btn-text btn-sm mt8" onclick="addCatSetting()">+ Kategori ekle</button>
       </div>
+
+      <!-- Kişiler — kompakt yatay şerit -->
       <div class="card-outlined mb16">
-        <div class="section-title">Üyelik</div>
-        <p class="text-sm mb8" id="settings-plan-summary">—</p>
-        <div class="flex gap8 flex-wrap mb8">
-          <span id="settings-plan-badge" class="plan-badge plan-badge-free">Ücretsiz</span>
+        <div class="flex items-center justify-between mb8">
+          <div class="section-title" style="margin:0;">Kişiler</div>
+          <button class="btn btn-text btn-sm" onclick="addPersonSetting()">+ Kişi ekle</button>
         </div>
-        <div class="flex gap8 flex-wrap">
-          <button type="button" class="btn btn-filled btn-sm" id="btn-upgrade-pro" onclick="openUpgradeDialog()">Pro'ya geç</button>
-          <button type="button" class="btn btn-outlined btn-sm" id="btn-json-backup" onclick="exportBackupJSON()">JSON tam yedek</button>
-          <button type="button" class="btn btn-text btn-sm" onclick="refreshUserPlan()">Planı yenile</button>
-        </div>
+        <div id="settings-persons"></div>
       </div>
-      <div class="card-outlined mb16">
-        <div class="section-title">Hesap</div>
-        <p class="text-sm mb16" id="settings-user-info">Giriş yapılmadı.</p>
-        <button class="btn btn-outlined btn-sm" onclick="signOutUser()">⏏ Çıkış Yap</button>
-      </div>
-      <div class="card-outlined mb16">
-        <div class="section-title">Kurulum Sihirbazı</div>
-        <p class="text-sm mb16">Mevcut verileriniz korunur. Kategoriler ve bütçe kalemlerini adım adım gözden geçirebilirsiniz.</p>
-        <button class="btn btn-outlined btn-sm" onclick="restartSetupWizard()">⚙️ Kurulumu Yeniden Aç</button>
-      </div>
-      <div class="card-outlined" style="border-color:var(--md-error);">
-        <div class="section-title" style="color:var(--md-error)">Tehlikeli Alan</div>
-        <p class="text-sm mb16">Tüm veriler silinir, uygulama sıfırlanır.</p>
+      <div class="card-outlined" style="border-color:var(--md-error-container);margin-top:8px;">
+        <div class="section-title" style="color:var(--md-error);margin-bottom:6px;">Hesabı Sil</div>
+        <p class="text-sm mb16">Tüm bütçe kalemleri, harcamalar ve planlı değişiklikler kalıcı olarak silinir. Email adresiniz korunur.</p>
         <div id="reset-confirm-area">
-          <button class="btn btn-danger-text btn-sm" onclick="showResetConfirm()">Sıfırla</button>
+          <button class="btn btn-danger-text btn-sm" onclick="showResetConfirm()">Tüm verileri sil</button>
         </div>
       </div>
     </div>
@@ -887,13 +722,8 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
         <div class="field"><label class="field-label">Kategori</label><select class="field-input" id="tx-cat" onchange="populateTxSubcat()"></select></div>
         <div class="field"><label class="field-label">Kişi</label><select class="field-input" id="tx-person"></select></div>
       </div>
-      <div class="field mb8">
-        <label class="field-label">Alt Kategori</label>
-        <select class="field-input" id="tx-subcat" onchange="handleSubcatSelect('tx')"></select>
-      </div>
-      <div id="tx-subcat-new" style="display:none;" class="field mb8">
-        <input type="text" class="field-input" id="tx-subcat-new-input" placeholder="Yeni alt kategori adı...">
-      </div>
+      <div class="field mb8"><label class="field-label">Alt Kategori</label><input type="text" class="field-input" id="tx-subcat" placeholder="Seç veya yaz..."></div>
+      <div class="chips-row" id="tx-subcat-chips"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;" class="mb12">
         <div class="field"><label class="field-label">Ödeme Tipi</label>
           <select class="field-input" id="tx-payment">
@@ -922,13 +752,8 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
         <div class="field"><label class="field-label">Kategori</label><select class="field-input" id="bm-cat" onchange="updateBmChips()"></select></div>
         <div class="field"><label class="field-label">Kişi</label><select class="field-input" id="bm-person"></select></div>
       </div>
-      <div class="field mb8">
-        <label class="field-label">Alt Kategori</label>
-        <select class="field-input" id="bm-subcat" onchange="handleSubcatSelect('bm')"></select>
-      </div>
-      <div id="bm-subcat-new" style="display:none;" class="field mb8">
-        <input type="text" class="field-input" id="bm-subcat-new-input" placeholder="Yeni alt kategori adı...">
-      </div>
+      <div class="field mb8"><label class="field-label">Alt Kategori</label><input type="text" class="field-input" id="bm-subcat" placeholder="Seç veya yaz..."></div>
+      <div class="chips-row" id="bm-subcat-chips"></div>
       <div class="field mb8">
         <label class="field-label">Gider Türü</label>
         <div class="type-seg">
@@ -943,21 +768,6 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
     <div class="dialog-footer">
       <button class="btn btn-text" onclick="closeDialog('budget-dialog')">İptal</button>
       <button class="btn btn-filled" onclick="saveBudgetItem()">Kaydet</button>
-    </div>
-  </div>
-</div>
-
-<!-- Pro / upgrade -->
-<div class="dialog-backdrop" id="upgrade-dialog">
-  <div class="dialog" style="max-width:420px;">
-    <div class="dialog-header"><div class="dialog-title">Pro özellikleri</div></div>
-    <div class="dialog-body">
-      <p class="text-sm mb12" id="upgrade-dialog-msg">Bulut senkron, çoklu cihaz, otomatik yedek ve tam bütçe geçmişi Pro ile açılır.</p>
-      <p class="text-sm" style="color:var(--md-on-surface-variant);" id="upgrade-dialog-extra"></p>
-    </div>
-    <div class="dialog-footer">
-      <button class="btn btn-text" onclick="closeDialog('upgrade-dialog')">Kapat</button>
-      <button class="btn btn-filled" onclick="goUpgradeCheckout()">Satın al</button>
     </div>
   </div>
 </div>
@@ -995,28 +805,14 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
 <script>
 'use strict';
 // ═══════════════════════════════════════════════════════
-// SUPABASE
-// ═══════════════════════════════════════════════════════
-const _SB_URL = 'https://lnjbruvhnahqvbtftuxw.supabase.co';
-const _SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxuamJydXZobmFocXZidGZ0dXh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNDUyODQsImV4cCI6MjA5MDgyMTI4NH0.Ec3fduRzf8bhrpvkWqDeyZtOv8XnNgH3b7dov0ndtNE';
-const _sb = supabase.createClient(_SB_URL, _SB_KEY, {
-  auth: {
-    detectSessionInUrl: true,
-    flowType: 'pkce',
-    persistSession: true,
-    storage: typeof localStorage !== 'undefined' ? localStorage : undefined,
-  }
-});
-let _sbUser = null; // currently signed-in user
-const _DEBUG_AUTH = (() => { try { return new URLSearchParams(location.search).has('debug'); } catch { return false; } })();
-/** Gumroad (veya Lemon) ödeme sayfası — kendi ürün linkinizle değiştirin */
-const GUMROAD_CHECKOUT_URL = 'https://gumroad.com/l/YOUR_PRODUCT';
-let _userPlanTier = 'free';
-
-// ═══════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════
-const SCHEMA_VERSION = 8;
+const SCHEMA_VERSION = 5;
+
+// ── Google OAuth Config ───────────────────────────────────
+// Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client ID
+// Authorized JS Origins: https://paraplan-three.vercel.app
+const GOOGLE_CLIENT_ID = '410282554539-ae7md9d2nt5j81jchtrc7nbvntouuv7c.apps.googleusercontent.com';
 const AV_CLASSES = ['av0','av1','av2','av3','av4'];
 const PERSON_HEX  = ['#006A6A','#4A6363','#4B607C','#795900','#BA1A1A'];
 const CAT_COLORS  = ['#006A6A','#4A6363','#795900','#4B607C','#BA1A1A','#0891B2','#DB2777','#16A34A','#EA580C','#64748B','#7C3AED','#854D0E'];
@@ -1031,24 +827,23 @@ const CAT_EMOJIS = {
 };
 
 const SUB = {
-  Konut:      ['Kira','Aidat','Elektrik & Su','Doğalgaz','İnternet','Temizlik','Bakım/Onarım'],
-  Gıda:       ['Market','Süpermarket','Manav','Kasap','Pazar','Fırın','Online Market','Şarküteri'],
-  Sağlık:     ['Reçeteli İlaç','Besin Takviyesi','Vitamin','Eczane','Doktor','Diş','Tahlil','Terapi'],
-  Spor:       ['Kişisel Antrenör','Spor Kulübü Üyeliği','Spor Lisansı','Spor Malzemesi','Kurs/Antrenör'],
-  Hobi:       ['Yaratıcı Atölye','Kurs/Ders','Malzeme','Kitap','Müzik'],
-  Eğitim:     ['Okul Taksiti','Üniversite','Kurs/Dershane','Etüt','Dil Kursu','Kitap/Kırtasiye'],
-  Eğlence:    ['Online Kurs','Dijital İçerik','Yayın Arşivi','Yemek Dışarıda','Sinema/Tiyatro','Konser/Etkinlik'],
-  'Özel Gün': ['Doğum Günü','Kişisel Harcama','Hediye','Yıldönümü','Bayram'],
-  Seyahat:    ['Feribot & Araç','Yakıt','Uçak/Otobüs','Otel','Araç Kiralama','Tur/Aktivite'],
-  'Dijital Abonelik': ['Bulut Depolama','Dosya Servisi','Müzik Servisi','Dizi/Film Platformu','Oyun Servisi'],
-  'Teknoloji & Tasarım': ['Tasarım Yazılımı','Ofis & İşbirliği','Geliştirici Araçları','Cihaz','Yazılım Lisansı'],
-  Ulaşım:     ['Toplu Taşıma','Akaryakıt','Park','Taksi/Servis','Araç Bakımı','Otoban'],
-  Kişisel:    ['Giyim','Kozmetik/Bakım','Kuaför/Berber','Cep Harçlığı'],
-  Destek:     ['Danışmanlık Hizmeti','Aile Yardımı','Bağış','Çocuk Desteği'],
-  Yatırım:    ['Yatırım Fonu','Hisse','Döviz','Altın','Kripto'],
-  Birikim:    ['Acil Fon','Eğitim Birikimi','Uzun Vadeli Birikim','Emeklilik','Çocuk Fonu'],
-  'Banka & Ödemeler': ['Kredi Ödemesi','Düzenli Transfer','Diğer Ödemeler'],
-  Diğer:      ['Çeşitli','Beklenmedik'],
+  Konut:['Kira','Aidat','Doğalgaz','Elektrik','Su','İnternet','Temizlik','Bakım/Onarım'],
+  Gıda:['Market','Manav/Kasap','Fırın','Online Market','Şarküteri'],
+  Fatura:['Telefon','Abonelikler','Sigorta','Araç Sigortası','Sağlık Sigortası'],
+  Ulaşım:['Toplu Taşıma','Akaryakıt','Park','Taksi/Servis','Araç Bakımı','Otoban'],
+  Sağlık:['Doktor','İlaç','Diş','Göz','Tahlil','Terapi','Vitamin'],
+  Spor:['Spor Salonu Üyeliği','Ekipman','Kurs/Antrenör'],
+  Hobi:['Malzeme','Kurs','Kitap','Müzik'],
+  Eğitim:['Okul Ücreti','Kurs/Dershane','Kitap/Kırtasiye','Etüt','Dil Kursu'],
+  Eğlence:['Yemek Dışarıda','Sinema/Tiyatro','Konser/Etkinlik','Bar/Kafe'],
+  'Özel Gün':['Doğum Günü','Hediye','Yıldönümü','Bayram'],
+  Kişisel:['Giyim','Kozmetik/Bakım','Kuaför/Berber','Cep Harçlığı'],
+  Seyahat:['Uçak/Otobüs','Otel','Araç Kiralama','Tur/Aktivite'],
+  Yatırım:['Hisse','Döviz','Altın','Fon','Kripto'],
+  Birikim:['Acil Fon','Hedef Birikim','Emeklilik','Çocuk Fonu'],
+  Destek:['Aile Yardımı','Bağış','Çocuk Desteği'],
+  Teknoloji:['Telefon/Tablet','Bilgisayar','Yazılım','Abonelik'],
+  Diğer:['Çeşitli','Beklenmedik']
 };
 
 const MS_TYPES = {
@@ -1080,19 +875,24 @@ function getMsEffect(m) {
 // STATE
 // ═══════════════════════════════════════════════════════
 let state = {
+  email:'',
   income:0, reserve:0,
   persons:[], categories:[], budgetItems:[], transactions:[],
-  milestones:[], extraIncome:[],
-  setupDone:false, schemaVersion:SCHEMA_VERSION,
-  dataFlags:{ customizedInSetup:false, customizedInSettings:false, bannerDismissed:false }
+  milestones:[], extraIncome:[], subcategories:{},
+  isCustomized:false,
+  setupDone:false, schemaVersion:SCHEMA_VERSION
 };
 
 let _editingBudgetId = null;
 let _editingTxId     = null;
+let _pendingDeleteBudget = null;
 let _pendingDeleteTx = null;
 let _bmType = 'variable';
 let _txFilters = {cat:'',person:'',payment:'',month:''};
 let _inlineEditId = null;   // which budget item is being inline-edited
+let _addingSubcatFor = null; // which category is having a new subcat added
+let _dragCatIdx = null;      // index being dragged for category reorder
+let _dragBudgetId = null;    // id being dragged for budget row reorder
 
 let _activeMonth = (() => {
   const d = new Date();
@@ -1105,252 +905,66 @@ const _dirty = new Set(['dashboard','budget','transactions','projection','settin
 // MIGRATION
 // ═══════════════════════════════════════════════════════
 function migrateState(s) {
-  // v6: sample data restructured — force re-onboarding for old sample sessions
-  if ((s.schemaVersion||0) < 6 && s.setupDone) {
-    const hasRealData = (s.transactions||[]).some(t => t.id > 9000);
-    if (!hasRealData) { s.setupDone = false; }
+  s.email        = s.email        || '';
+  s.isCustomized = s.isCustomized || false;
+  s.extraIncome  = s.extraIncome  || [];
+  // Alt kategoriler: SUB objesi'nden initialize et
+  if(!s.subcategories || !Object.keys(s.subcategories).length) {
+    s.subcategories = {};
+    Object.entries(SUB).forEach(([k,v]) => { s.subcategories[k] = [...v]; });
   }
-  // v7+v8: restore fields that went empty due to double-initSetup auth bug
-  if ((s.schemaVersion||0) < 8 && s.setupDone) {
-    const hasRealTx = (s.transactions||[]).some(t => t.id > 9000);
-    const now=new Date();
-    const fm=(off)=>{const fd=new Date(now.getFullYear(),now.getMonth()+off,1);return`${fd.getFullYear()}-${String(fd.getMonth()+1).padStart(2,'0')}`;};
-    // Restore categories if empty
-    if (!(s.categories||[]).length) {
-      s.categories=['Konut','Gıda','Ulaşım','Sağlık','Eğitim','Eğlence',
-        'Dijital Abonelik','Teknoloji & Tasarım','Kişisel','Spor',
-        'Destek','Birikim','Banka & Ödemeler','Özel Gün','Seyahat','Hobi'];
-    }
-    // Restore milestones if empty
-    if (!(s.milestones||[]).length) {
-      s.milestones=[
-        {id:3001,desc:'Maaş artışı bekleniyor',month:fm(4),amount:10000,type:'income_increase'},
-        {id:3002,desc:'Kredi ödemesi bitiyor',month:fm(10),amount:5000,type:'expense_decrease'},
-      ];
-    }
-    // Restore persons if empty or corrupted (first person named "Kişi 0" is a bug artifact)
-    if (!(s.persons||[]).length || s.persons[0]?.name==='Kişi 0') {
-      s.persons=[{name:'Ortak',id:'p0'},{name:'Kişi 1',id:'p1'},{name:'Kişi 2',id:'p2'}];
-    }
-    // If income is 0 and no real data, restore income
-    if (!s.income && !hasRealTx) { s.income=100000; s.reserve=120000; }
-  }
-  s.milestones = s.milestones || [];
-  s.extraIncome = s.extraIncome || [];
-  s.categories = s.categories || [];
-  s.persons = s.persons || [];
   (s.budgetItems||[]).forEach(b => {
     if (!b.type) b.type = 'variable';
     if (!b.id)   b.id   = Date.now() + Math.random();
     if (!b.budgetHistory) b.budgetHistory = [{from:'2000-01', amount: b.budget||0}];
   });
   (s.milestones||[]).forEach(m => { if (!MS_TYPES[m.type]) m.type='expense_decrease'; });
-  if(!s.dataFlags||typeof s.dataFlags!=='object'){
-    s.dataFlags={
-      customizedInSetup:!!s.setupDone,
-      customizedInSettings:false,
-      bannerDismissed:false
-    };
-  }else{
-    s.dataFlags.customizedInSetup=!!s.dataFlags.customizedInSetup;
-    s.dataFlags.customizedInSettings=!!s.dataFlags.customizedInSettings;
-    s.dataFlags.bannerDismissed=!!s.dataFlags.bannerDismissed;
-  }
   s.schemaVersion = SCHEMA_VERSION;
   return s;
 }
 
-// ═══════════════════════════════════════════════════════
-// STORAGE  (bulut = tek kaynak; satır anahtarı: normalize edilmiş e-posta)
-// ── Supabase SQL (bir kez çalıştır): ───────────────────
-// ALTER TABLE user_budget ADD COLUMN IF NOT EXISTS owner_email text;
-// UPDATE user_budget b SET owner_email = lower(trim(u.email)) FROM auth.users u WHERE u.id = b.user_id AND (b.owner_email IS NULL OR b.owner_email = '');
-// CREATE UNIQUE INDEX IF NOT EXISTS user_budget_owner_email_unique ON user_budget (owner_email);
-// RLS: SELECT/INSERT/UPDATE için  USING / WITH CHECK  (owner_email = lower(trim(auth.jwt() ->> 'email')))
-// Eski policy'leri (sadece user_id) kaldırıp e-posta eşleşmesiyle yeniden oluşturun.
-// ═══════════════════════════════════════════════════════
-function normUserEmail(user){
-  if(!user?.email) return '';
-  return String(user.email).trim().toLowerCase();
-}
-async function fetchUserPlan(user){
-  _userPlanTier = 'free';
-  if(!user) return;
-  const em = normUserEmail(user);
-  if(!em) return;
-  try{
-    const { data, error } = await _sb.from('user_plans').select('tier,valid_until').eq('owner_email', em).maybeSingle();
-    if(error || !data) return;
-    const t = String(data.tier||'').toLowerCase();
-    if(t !== 'pro' && t !== 'lifetime') return;
-    if(data.valid_until){
-      const vu = new Date(data.valid_until);
-      if(!isNaN(vu.getTime()) && vu < new Date()) return;
-    }
-    _userPlanTier = t;
-  }catch(e){ console.warn('[Plan] fetch', e); }
-}
-function hasPremiumCloud(){ return _userPlanTier === 'pro' || _userPlanTier === 'lifetime'; }
-function planLabel(){
-  if(_userPlanTier === 'lifetime') return 'Lifetime';
-  if(_userPlanTier === 'pro') return 'Pro';
-  return 'Ücretsiz';
-}
-function syncPlanBadge(){
-  const nav = document.getElementById('nav-plan-badge');
-  if(nav){
-    if(!_sbUser){ nav.style.display='none'; }
-    else{
-      nav.style.display='inline-flex';
-      nav.textContent = planLabel();
-      nav.className = 'plan-badge ' + (hasPremiumCloud() ? 'plan-badge-pro' : 'plan-badge-free');
-    }
-  }
-  const sb = document.getElementById('settings-plan-badge');
-  if(sb){
-    sb.textContent = planLabel();
-    sb.className = 'plan-badge ' + (hasPremiumCloud() ? 'plan-badge-pro' : 'plan-badge-free');
-  }
-  const jb = document.getElementById('btn-json-backup');
-  if(jb) jb.style.display = hasPremiumCloud() ? 'inline-flex' : 'none';
-  const up = document.getElementById('btn-upgrade-pro');
-  if(up) up.style.display = hasPremiumCloud() ? 'none' : 'inline-flex';
-}
-async function refreshUserPlan(){
-  if(!_sbUser){ showSnack('Önce giriş yapın'); return; }
-  await fetchUserPlan(_sbUser);
-  syncPlanBadge();
-  renderSettings();
-  showSnack(hasPremiumCloud() ? 'Pro aktif' : 'Ücretsiz plan (Supabase’de pro satırı yok veya süresi dolmuş)');
-}
-function openUpgradeDialog(extra){
-  const x = document.getElementById('upgrade-dialog-extra');
-  if(x) x.textContent = extra || '';
-  openDialog('upgrade-dialog');
-}
-function goUpgradeCheckout(){
-  if(!GUMROAD_CHECKOUT_URL || /YOUR_PRODUCT/.test(GUMROAD_CHECKOUT_URL)){
-    showSnack('Ödeme linki: index.html içinde GUMROAD_CHECKOUT_URL değerini doldurun');
-    return;
-  }
-  window.open(GUMROAD_CHECKOUT_URL, '_blank', 'noopener,noreferrer');
-  closeDialog('upgrade-dialog');
-}
-function exportBackupJSON(){
-  if(!hasPremiumCloud()){ openUpgradeDialog('JSON tam yedek ve bulut geçmişi Pro / Lifetime ile sunulur.'); return; }
-  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `paraplan_yedek_${new Date().toISOString().slice(0,10)}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-  showSnack('JSON indirildi');
-}
-function resetEmptyState(){
-  state={income:0,reserve:0,persons:[],categories:[],budgetItems:[],transactions:[],milestones:[],extraIncome:[],setupDone:false,schemaVersion:SCHEMA_VERSION,dataFlags:{customizedInSetup:false,customizedInSettings:false,bannerDismissed:false}};
-}
-function ensureDataFlags(){
-  if(!state.dataFlags||typeof state.dataFlags!=='object'){
-    state.dataFlags={customizedInSetup:false,customizedInSettings:false,bannerDismissed:false};
-  }
-}
-function markSettingsDataTouched(){
-  ensureDataFlags();
-  state.dataFlags.customizedInSettings=true;
-}
-function dismissSampleBannerPersist(){
-  ensureDataFlags();
-  state.dataFlags.bannerDismissed=true;
-  try{ sessionStorage.setItem('sbDismissed','1'); }catch(e){}
+// Kullanıcı herhangi bir veriyi değiştirince çağrılır — banner kalıcı olarak kapanır
+function markCustomized(){
+  if(state.isCustomized) return;
+  state.isCustomized = true;
   saveState();
-  renderSampleBanner();
+  // Banner'ı hemen kapat
+  const el=document.getElementById('sample-data-banner');
+  if(el) el.innerHTML='';
 }
 
-let _cloudSaveOk = true;
+// ═══════════════════════════════════════════════════════
+// STORAGE
+// ═══════════════════════════════════════════════════════
 async function saveState() {
-  // Always save to localStorage as offline cache (aynı hesabın son bulut görüntüsü)
-  try { localStorage.setItem('budget-v6', JSON.stringify(state)); } catch(e){}
-  // Bulut: yalnızca Pro / Lifetime (ücretsiz = yalnızca bu cihaz)
-  if (_sbUser && hasPremiumCloud()) {
-    const em = normUserEmail(_sbUser);
-    try {
-      const row = {
-        user_id: _sbUser.id,
-        state: state,
-        updated_at: new Date().toISOString()
-      };
-      let error;
-      if(em){
-        row.owner_email = em;
-        ({ error } = await _sb.from('user_budget').upsert(row, { onConflict: 'owner_email' }));
-      }else{
-        ({ error } = await _sb.from('user_budget').upsert(row, { onConflict: 'user_id' }));
-      }
-      if (error) {
-        console.warn('Supabase save error', error);
-        if (_cloudSaveOk) showSnack('Buluta kaydedilemedi — veri bu cihazda duruyor');
-        _cloudSaveOk = false;
-      } else {
-        _cloudSaveOk = true;
-      }
-    } catch(e){
-      console.warn('Supabase save error', e);
-      if (_cloudSaveOk) showSnack('Buluta kaydedilemedi — veri bu cihazda duruyor');
-      _cloudSaveOk = false;
-    }
-  }
-}
-
-async function loadStateFromSupabase(user) {
   try {
-    const em = normUserEmail(user);
-    let data = null;
-    if(em){
-      const r = await _sb.from('user_budget').select('state').eq('owner_email', em).maybeSingle();
-      if(r.data) data = r.data;
-    }
-    if(!data){
-      const r2 = await _sb.from('user_budget').select('state').eq('user_id', user.id).maybeSingle();
-      if(r2.data) data = r2.data;
-    }
-    if (data) {
-      state = migrateState(data.state);
-      repairEmptyOnboardingIfNeeded();
-      try { localStorage.setItem('budget-v6', JSON.stringify(state)); } catch(e){}
-      return true;
-    }
-    // Giriş yapılmış: bulutta satır yok — cihazdaki başka oturum/anon veriyi BİRLEŞTİRME
-    resetEmptyState();
-    console.log('[Supabase] Bu e-posta için bulutta kayıt yok — yeni kurulum');
-  } catch(e){ console.warn('[Supabase] Load error:', e); resetEmptyState(); }
-  return false;
-}
-
-function loadStateLocal() {
-  try {
-    const keys = ['budget-v6','budget-v4','budget-app-v3','budget-app-state'];
-    for (const k of keys) {
-      const d = localStorage.getItem(k);
-      if (d) { state = migrateState(JSON.parse(d)); repairEmptyOnboardingIfNeeded(); return true; }
-    }
-  } catch(e){}
-  return false;
+    const d = JSON.stringify(state);
+    if (window.storage) await window.storage.set('budget-v4', d);
+    else localStorage.setItem('budget-v4', d);
+  } catch(e) { try { localStorage.setItem('budget-v4', JSON.stringify(state)); } catch(e2){} }
 }
 
 async function loadState() {
-  return loadStateLocal();
+  try {
+    let data = null;
+    const keys = ['budget-v4','budget-app-v3','budget-app-state'];
+    for (const k of keys) {
+      if (!data && window.storage) { const r = await window.storage.get(k); if(r) data=r.value; }
+      if (!data) data = localStorage.getItem(k);
+      if (data) break;
+    }
+    if (data) { state = migrateState(JSON.parse(data)); return true; }
+  } catch(e){}
+  return false;
 }
 
 function debounce(fn,ms=350){ let t; return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);}; }
 const dSave = debounce(saveState,400);
 function dSaveSettings(){
-  markSettingsDataTouched();
   state.income = +document.getElementById('set-income').value||state.income;
   state.reserve = +document.getElementById('set-reserve').value||state.reserve;
-  dSave(); markDirty('dashboard','projection','budget'); renderNavFooter(); updateReserveHint(); renderSampleBanner();
+  markCustomized();
+  dSave(); markDirty('dashboard','projection','budget'); renderNavFooter(); updateReserveHint();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1363,6 +977,13 @@ function curMonthKey(){ return _activeMonth; }
 
 function getTotalIncome(){
   return (state.income||0)+(state.extraIncome||[]).reduce((s,e)=>s+(e.frequency==='annual'?(e.amount||0)/12:(e.amount||0)),0);
+}
+
+// Alt kategoriler: state + budgetItems birleştir
+function getSubcats(cat){
+  const fromState = state.subcategories?.[cat] || SUB[cat] || [];
+  const fromItems = (state.budgetItems||[]).filter(b=>b.cat===cat).map(b=>b.subcat).filter(Boolean);
+  return [...new Set([...fromState,...fromItems])];
 }
 
 // BUSINESS: compute for month — separates savings from spending
@@ -1498,489 +1119,187 @@ function resetMonth(){
 // ═══════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════
-function isOAuthCallbackUrl(){
-  try{
-    const q=location.search||'', h=location.hash||'';
-    return /[?&]code=/.test(q) || /access_token=/.test(h) || /refresh_token=/.test(h);
-  }catch{ return false; }
-}
-/** PKCE: URL’deki ?code= ile oturumu açıkça kurar. Sadece getSession() döngüsü Safari’de bazen hiç tetiklenmiyor. */
-async function tryExchangeOAuthPkce(){
-  try{
-    const code=new URLSearchParams(location.search).get('code');
-    if(!code) return null;
-    const { data, error } = await _sb.auth.exchangeCodeForSession(code);
-    if(error){
-      if(_DEBUG_AUTH) console.warn('[Auth] exchangeCodeForSession', error.message);
-      return null;
+async function init(){
+  const loaded = await loadState();
+
+  if (loaded && state.email) {
+    // Email kayıtlı
+    if (state.setupDone) {
+      showApp();                  // Direkt uygulamaya
+    } else {
+      showOnboarding();           // Setup bitmemiş → kurulum sihirbazı
     }
-    return data?.session||null;
-  }catch(e){
-    if(_DEBUG_AUTH) console.warn('[Auth] exchangeCodeForSession threw', e);
-    return null;
+  } else {
+    // Email yok → email ekranı
+    showEmailScreen();
   }
 }
-function cleanAuthParamsFromUrl(){
-  try{
-    if(!isOAuthCallbackUrl()) return;
-    const path=location.pathname||'/';
-    history.replaceState({}, document.title, path);
-  }catch(e){}
-}
-function setLoginOAuthBusy(on){
-  const busy=document.getElementById('login-busy-panel');
-  const box=document.getElementById('login-interactive');
-  if(busy) busy.style.display=on?'block':'none';
-  if(box) box.style.display=on?'none':'block';
-}
-/** OAuth / magic link dönüşü — Supabase URL listesinde birebir tanımlı olmalı */
-function getOAuthRedirectTo(){
-  try{
-    const o = window.location.origin;
-    const p = window.location.pathname || '/';
-    if(!p || p === '/') return o + '/';
-    const trimmed = p.replace(/\/+$/,'') || '/';
-    return trimmed === '/' ? o + '/' : o + trimmed + '/';
-  }catch{ return window.location.origin + '/'; }
-}
-function toggleLoginPasswordBlock(){
-  const b=document.getElementById('login-password-block');
-  if(b) b.classList.toggle('open');
-}
-function showLoginScreen(){
-  setLoginOAuthBusy(false);
-  document.getElementById('login-screen').style.display='flex';
+
+function showEmailScreen(){
+  document.getElementById('email-screen').style.display='flex';
   document.getElementById('onboarding').style.display='none';
   document.getElementById('main-app').style.display='none';
-  document.getElementById('fab-wrap').style.display='none';
+  document.getElementById('top-bar').style.display='none';
   document.getElementById('bottom-nav').style.display='none';
-}
-function hideLoginScreen(){
-  document.getElementById('login-screen').style.display='none';
-}
-function safeAvatarUrl(u){
-  if(!u||typeof u!=='string') return '';
-  try{
-    const url=new URL(u);
-    if(url.protocol!=='https:') return '';
-    return u;
-  }catch{ return ''; }
-}
-function updateNavUser(user){
-  if(!user){ document.getElementById('nav-user-area').style.display='none'; return; }
-  document.getElementById('nav-user-area').style.display='flex';
-  const name = user.user_metadata?.full_name || user.email || 'Kullanıcı';
-  const email = user.email || '';
-  const pic = safeAvatarUrl(user.user_metadata?.avatar_url || '');
-  document.getElementById('nav-user-name').textContent = name;
-  document.getElementById('nav-user-email').textContent = email;
-  const av = document.getElementById('nav-user-avatar');
-  av.innerHTML='';
-  if(pic){
-    const img=document.createElement('img');
-    img.src=pic;
-    img.alt='';
-    av.appendChild(img);
-  }else{
-    av.textContent=name.slice(0,2).toUpperCase();
-  }
-  syncPlanBadge();
+  document.getElementById('fab').style.display='none';
+  const inp=document.getElementById('email-input');
+  if(inp && state.email) inp.value=state.email;
+  setTimeout(()=>document.getElementById('email-input')?.focus(), 150);
 }
 
-async function signInWithGoogle(){
-  clearLoginError();
-  const redirectTo = getOAuthRedirectTo();
-  try{
-    const { data, error } = await _sb.auth.signInWithOAuth({
-      provider:'google',
-      options:{
-        redirectTo,
-        queryParams:{ prompt:'select_account' },
-        skipBrowserRedirect:true,
-      }
-    });
-    if(error){
-      showLoginError(error.message || 'Google girişi başarısız');
-      return;
-    }
-    if(data?.url){
-      window.location.assign(data.url);
-      return;
-    }
-    showLoginError('Google yönlendirmesi başlatılamadı. Supabase Auth URL yapılandırmasını kontrol edin.', false);
-  }catch(e){
-    console.warn('[Auth] Google', e);
-    showLoginError(e?.message || 'Google girişi başarısız');
-  }
-}
-async function signInWithEmailMagicLink(){
-  const email=document.getElementById('login-email').value.trim();
-  if(!email){ showLoginError('Email adresinizi girin'); return; }
-  clearLoginError();
-  showLoginError('Bağlantı gönderiliyor…', true);
-  try{
-    const { error } = await _sb.auth.signInWithOtp({
-      email,
-      options:{ emailRedirectTo:getOAuthRedirectTo() }
-    });
-    if(error){ showLoginError(error.message); return; }
-    showLoginError('Giriş bağlantısı e-postanıza gönderildi — gelen kutusu ve spam klasörünü kontrol edin.', true);
-  }catch(e){
-    showLoginError(e?.message || 'E-posta gönderilemedi');
-  }
-}
-async function signInWithEmail(){
-  const email=document.getElementById('login-email').value.trim();
-  const pass=document.getElementById('login-password').value;
-  if(!email||!pass){ showLoginError('E-posta ve şifre gerekli'); return; }
-  clearLoginError();
-  const { error } = await _sb.auth.signInWithPassword({ email, password:pass });
-  if(error) showLoginError(error.message);
-}
-async function signUpWithEmail(){
-  const email=document.getElementById('login-email').value.trim();
-  const pass=document.getElementById('login-password').value;
-  if(!email||!pass){ showLoginError('E-posta ve şifre gerekli'); return; }
-  if(pass.length<6){ showLoginError('Şifre en az 6 karakter olmalı'); return; }
-  const { error } = await _sb.auth.signUp({ email, password:pass });
-  if(error) showLoginError(error.message);
-  else showLoginError('Doğrulama e-postası gönderildi — gelen kutunuzu kontrol edin ✉️', true);
-}
-function showLoginError(msg, isInfo=false){
-  const el=document.getElementById('login-error');
-  el.textContent=msg; el.style.display='block';
-  el.style.background=isInfo?'var(--md-primary-container)':'var(--md-error-container)';
-  el.style.color=isInfo?'var(--md-on-primary-container)':'var(--md-on-error-container)';
-}
-function clearLoginError(){
-  const el=document.getElementById('login-error');
-  if(el){ el.textContent=''; el.style.display='none'; }
-}
-async function signOutUser(){
-  _lastLoadedStateForUserId = null;
-  _oauthRedirectPending = false;
-  _userPlanTier = 'free';
-  await _sb.auth.signOut();
-  _sbUser=null;
-  try{ localStorage.removeItem('budget-v6'); }catch(e){}
-  syncPlanBadge();
-  showLoginScreen();
-}
-
-/** Supabase user.id whose cloud state we already pulled this page load (avoids double initSetup). */
-let _lastLoadedStateForUserId = null;
-/** True while URL still has OAuth code/hash but session not ready yet (getSession race). */
-let _oauthRedirectPending = false;
-
-async function applySessionToApp(session){
-  if(!session?.user){
-    _sbUser=null;
-    showLoginScreen();
+// ── Google Sign-In ────────────────────────────────────────
+function signInWithGoogle(){
+  if(!GOOGLE_CLIENT_ID){
+    showSnack('Google Client ID henüz yapılandırılmadı — email ile giriş yapın');
     return;
   }
-  _oauthRedirectPending=false;
-  cleanAuthParamsFromUrl();
-  clearLoginError();
-  const user=session.user;
-  const uid=user.id;
-  _sbUser=user;
-  await fetchUserPlan(user);
-  updateNavUser(user);
-  hideLoginScreen();
-  if(_lastLoadedStateForUserId===uid){
-    await fetchUserPlan(user);
-    syncPlanBadge();
-    if(state.setupDone) showApp();
-    else document.getElementById('onboarding').style.display='flex';
-    return;
-  }
-  _lastLoadedStateForUserId=uid;
-  try{
-    let loaded = false;
-    if(hasPremiumCloud()){
-      loaded = await loadStateFromSupabase(user);
-    }else{
-      if(loadStateLocal()){
-        repairEmptyOnboardingIfNeeded();
-        loaded = true;
-      }
-    }
-    if(loaded&&state.setupDone) showApp();
-    else if(loaded){
-      repairEmptyOnboardingIfNeeded();
-      document.getElementById('onboarding').style.display='flex';
-      const si=document.getElementById('s-income');const sr=document.getElementById('s-reserve');
-      if(si) si.value=state.income;if(sr) sr.value=state.reserve;
-      renderPersonList();renderCategoryList();renderBudgetSetup();renderMilestoneSetup();
-    } else {
-      initSetup();
-      document.getElementById('onboarding').style.display='flex';
-    }
-  }catch(err){
-    console.error('Session init error:', err);
-    resetEmptyState();
-    initSetup();
-    document.getElementById('onboarding').style.display='flex';
-  }
-}
-
-async function init(){
-  function updateOfflineBanner(){
-    const el=document.getElementById('offline-banner');
-    if(!el)return;
-    el.style.display=navigator.onLine?'none':'block';
-    const topBar=document.getElementById('top-bar');
-    if(topBar)topBar.style.top=navigator.onLine?'0':'40px';
-  }
-  window.addEventListener('online',updateOfflineBanner);
-  window.addEventListener('offline',updateOfflineBanner);
-  updateOfflineBanner();
-
-  _oauthRedirectPending = isOAuthCallbackUrl();
-
-  // Dinleyiciyi ÖNCE kaydet: OAuth dönüşünde kod değişimi getSession’dan sonra bitebiliyor; SIGNED_IN kaçmasın.
-  _sb.auth.onAuthStateChange(async (event, session) => {
-    if(_DEBUG_AUTH) console.log('[Auth]', event, session?.user?.email ?? '—');
-    if(event==='INITIAL_SESSION'){
-      if(session?.user){
-        if(_lastLoadedStateForUserId!==session.user.id) await applySessionToApp(session);
-        else{
-          _sbUser=session.user;
-          await fetchUserPlan(session.user);
-          updateNavUser(session.user);
-          syncPlanBadge();
-          hideLoginScreen();
-        }
-      }else if(!_sbUser && !_oauthRedirectPending){
-        showLoginScreen();
-      }
-      return;
-    }
-    if(event==='TOKEN_REFRESHED'){
-      if(session?.user){
-        _sbUser=session.user;
-        fetchUserPlan(session.user).then(()=>{ updateNavUser(session.user); syncPlanBadge(); });
-        hideLoginScreen();
-      }
-      return;
-    }
-    if(event==='SIGNED_IN'){
-      _oauthRedirectPending=false;
-      await applySessionToApp(session);
-      return;
-    }
-    if(event==='SIGNED_OUT'){
-      _lastLoadedStateForUserId=null;
-      _oauthRedirectPending=false;
-      _sbUser=null;
-      _userPlanTier='free';
-      syncPlanBadge();
-      showLoginScreen();
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleGoogleSignIn,
+    auto_select: false,
+  });
+  google.accounts.id.prompt((notification)=>{
+    if(notification.isNotDisplayed()||notification.isSkippedMoment()){
+      showSnack('Google girişi açılamadı, email ile deneyin');
     }
   });
+}
 
-  const { data:{ session:boot } } = await _sb.auth.getSession();
-  if(boot?.user){
-    await applySessionToApp(boot);
-    return;
+function handleGoogleSignIn(response){
+  try {
+    const payload=JSON.parse(atob(response.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    const email=payload.email;
+    if(!email){showSnack('Email alınamadı, tekrar deneyin');return;}
+    state.email=email;
+    saveState();
+    document.getElementById('email-screen').style.display='none';
+    if(state.setupDone) showApp();
+    else showOnboarding();
+    showSnack(`Hoş geldiniz, ${esc(payload.given_name||email)}!`);
+  } catch(e){
+    showSnack('Google girişi başarısız, email ile deneyin');
+  }
+}
+
+function submitEmail(){
+  const inp=document.getElementById('email-input');
+  const email=(inp?.value||'').trim().toLowerCase();
+  const helpEl=document.getElementById('email-helper');
+
+  // Validasyon
+  if(!email){
+    if(helpEl){helpEl.textContent='Email adresi zorunlu.';helpEl.className='field-helper bad';}
+    inp?.focus(); return;
+  }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    if(helpEl){helpEl.textContent='Geçerli bir email adresi girin.';helpEl.className='field-helper bad';}
+    inp?.focus(); return;
   }
 
-  if(_oauthRedirectPending){
-    showLoginScreen();
-    clearLoginError();
-    setLoginOAuthBusy(true);
-    // 1) PKCE kodunu açıkça değiştir (detectSessionInUrl tek başına bazen yetmiyor → 45 sn boşa bekleme)
-    let sPk=await tryExchangeOAuthPkce();
-    if(!sPk){
-      const { data:{ session:g1 } } = await _sb.auth.getSession();
-      sPk=g1;
-    }
-    if(sPk?.user){
-      setLoginOAuthBusy(false);
-      await applySessionToApp(sPk);
-      return;
-    }
-    // 2) Hash / yavaş ağ yedek bekleme
-    const maxWaitMs=30000, stepMs=150;
-    const steps=Math.ceil(maxWaitMs/stepMs);
-    for(let i=0;i<steps;i++){
-      await new Promise(r=>setTimeout(r,stepMs));
-      const { data:{ session:s2 } } = await _sb.auth.getSession();
-      if(s2?.user){
-        setLoginOAuthBusy(false);
-        await applySessionToApp(s2);
-        return;
-      }
-    }
-    const { data:{ session:late } } = await _sb.auth.getSession();
-    if(late?.user){
-      setLoginOAuthBusy(false);
-      await applySessionToApp(late);
-      return;
-    }
-    _oauthRedirectPending=false;
-    setLoginOAuthBusy(false);
-    cleanAuthParamsFromUrl();
-    showLoginScreen();
-    showLoginError('Giriş tamamlanması gecikti. «Google ile Giriş Yap»a bir kez daha basın.', true);
-    return;
-  }
+  if(helpEl){helpEl.textContent='';helpEl.className='field-helper';}
+  state.email = email;
+  saveState();
+  document.getElementById('email-screen').style.display='none';
+  if(state.setupDone) showApp();
+  else showOnboarding();
+}
 
-  showLoginScreen();
+function showOnboarding(){
+  initSetup();
+  document.getElementById('email-screen').style.display='none';
+  document.getElementById('onboarding').style.display='flex';
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('top-bar').style.display='none';
+  document.getElementById('bottom-nav').style.display='none';
+  document.getElementById('fab').style.display='none';
+  requestAnimationFrame(()=>{
+    renderPersonList();
+    renderCategoryList();
+    renderBudgetSetup();
+    renderMilestoneSetup();
+  });
 }
 
 // ═══════════════════════════════════════════════════════
 // SETUP
 // ═══════════════════════════════════════════════════════
-/** Bulutta setupDone=false ama kategoriler/bütçe boş kalmış kayıtlar (eski migration) — sihirbaz adımları bomboş kalmasın */
-function repairEmptyOnboardingIfNeeded(){
-  if(state.setupDone)return;
-  if((state.transactions||[]).some(t=>t.id>9000))return;
-  if(state.categories?.length && state.budgetItems?.length)return;
-  const keepI=state.income,keepR=state.reserve;
-  const keepP=state.persons?.length?JSON.parse(JSON.stringify(state.persons)):null;
-  initSetup();
-  if(keepI>0)state.income=keepI;
-  if(keepR>=0)state.reserve=keepR;
-  if(keepP&&keepP.length)state.persons=keepP;
-  const si=document.getElementById('s-income');
-  const sr=document.getElementById('s-reserve');
-  if(si)si.value=state.income;
-  if(sr)sr.value=state.reserve;
-  renderPersonList();renderCategoryList();renderBudgetSetup();renderMilestoneSetup();
-  dSave();
-}
-
 function initSetup(){
   const now=new Date(),y=now.getFullYear(),mo=String(now.getMonth()+1).padStart(2,'0');
   const d=(day)=>`${y}-${mo}-${String(day).padStart(2,'0')}`;
   const fm=(off)=>{const fd=new Date(now.getFullYear(),now.getMonth()+off,1);return`${fd.getFullYear()}-${String(fd.getMonth()+1).padStart(2,'0')}`;};
 
-  state.dataFlags={customizedInSetup:false,customizedInSettings:false,bannerDismissed:!!state.dataFlags?.bannerDismissed};
-  state.persons=[{name:'Ortak',id:'p0'},{name:'Kişi 1',id:'p1'},{name:'Kişi 2',id:'p2'}];
-  state.income=100000;state.reserve=120000;
-  state.categories=[
-    'Konut','Gıda','Ulaşım','Sağlık','Eğitim','Eğlence',
-    'Dijital Abonelik','Teknoloji & Tasarım','Kişisel','Spor',
-    'Destek','Birikim','Banka & Ödemeler','Özel Gün','Seyahat','Hobi'
-  ];
+  state.persons=[{name:'Aile',id:'p0'},{name:'Kişi 1',id:'p1'},{name:'Kişi 2',id:'p2'}];
+  state.income=83000; state.reserve=55000;
+  state.categories=['Konut','Gıda','Fatura','Ulaşım','Sağlık','Eğitim','Eğlence','Spor','Kişisel','Teknoloji','Birikim','Yatırım','Diğer'];
 
-  const bh=(n)=>[{from:'2000-01',amount:n}];
+  // Toplam bütçe: 82.800 ₺ | Gelir: 83.000 ₺ → +200 ₺ fazla (dengeli)
   state.budgetItems=[
-    // Konut — 28.000 ₺
-    {id:1001,cat:'Konut',               subcat:'Kira',                 person:'Ortak',  budget:20000, type:'fixed',   budgetHistory:bh(20000)},
-    {id:1002,cat:'Konut',               subcat:'Aidat',                person:'Ortak',  budget:2500,  type:'fixed',   budgetHistory:bh(2500)},
-    {id:1003,cat:'Konut',               subcat:'Elektrik & Su',        person:'Ortak',  budget:2500,  type:'fixed',   budgetHistory:bh(2500)},
-    {id:1004,cat:'Konut',               subcat:'Doğalgaz',             person:'Ortak',  budget:1500,  type:'fixed',   budgetHistory:bh(1500)},
-    {id:1005,cat:'Konut',               subcat:'İnternet',             person:'Ortak',  budget:600,   type:'fixed',   budgetHistory:bh(600)},
-    {id:1006,cat:'Konut',               subcat:'Temizlik',             person:'Ortak',  budget:900,   type:'variable',budgetHistory:bh(900)},
-    // Gıda — 12.000 ₺
-    {id:1007,cat:'Gıda',                subcat:'Market',               person:'Ortak',  budget:4500,  type:'variable',budgetHistory:bh(4500)},
-    {id:1008,cat:'Gıda',                subcat:'Manav',                person:'Ortak',  budget:2000,  type:'variable',budgetHistory:bh(2000)},
-    {id:1009,cat:'Gıda',                subcat:'Kasap',                person:'Ortak',  budget:2500,  type:'variable',budgetHistory:bh(2500)},
-    {id:1010,cat:'Gıda',                subcat:'Pazar',                person:'Ortak',  budget:1500,  type:'variable',budgetHistory:bh(1500)},
-    {id:1011,cat:'Gıda',                subcat:'Fırın',                person:'Ortak',  budget:500,   type:'variable',budgetHistory:bh(500)},
-    {id:1012,cat:'Gıda',                subcat:'Süpermarket',          person:'Ortak',  budget:1000,  type:'variable',budgetHistory:bh(1000)},
-    // Ulaşım — 5.500 ₺
-    {id:1013,cat:'Ulaşım',              subcat:'Akaryakıt',            person:'Ortak',  budget:3500,  type:'variable',budgetHistory:bh(3500)},
-    {id:1014,cat:'Ulaşım',              subcat:'Toplu Taşıma',         person:'Kişi 1', budget:1000,  type:'variable',budgetHistory:bh(1000)},
-    {id:1015,cat:'Ulaşım',              subcat:'Araç Bakımı',          person:'Ortak',  budget:1000,  type:'variable',budgetHistory:bh(1000)},
-    // Sağlık — 4.000 ₺
-    {id:1016,cat:'Sağlık',              subcat:'Reçeteli İlaç',        person:'Kişi 1', budget:1500,  type:'fixed',   budgetHistory:bh(1500)},
-    {id:1017,cat:'Sağlık',              subcat:'Eczane',               person:'Ortak',  budget:1500,  type:'variable',budgetHistory:bh(1500)},
-    {id:1018,cat:'Sağlık',              subcat:'Besin Takviyesi',      person:'Ortak',  budget:1000,  type:'variable',budgetHistory:bh(1000)},
-    // Eğitim — 8.000 ₺
-    {id:1019,cat:'Eğitim',              subcat:'Kurs/Dershane',        person:'Kişi 1', budget:5000,  type:'fixed',   budgetHistory:bh(5000)},
-    {id:1020,cat:'Eğitim',              subcat:'Dil Kursu',            person:'Kişi 2', budget:2000,  type:'fixed',   budgetHistory:bh(2000)},
-    {id:1021,cat:'Eğitim',              subcat:'Kitap/Kırtasiye',      person:'Ortak',  budget:1000,  type:'variable',budgetHistory:bh(1000)},
-    // Eğlence — 4.000 ₺
-    {id:1022,cat:'Eğlence',             subcat:'Yemek Dışarıda',       person:'Ortak',  budget:2500,  type:'variable',budgetHistory:bh(2500)},
-    {id:1023,cat:'Eğlence',             subcat:'Sinema/Tiyatro',       person:'Ortak',  budget:1000,  type:'variable',budgetHistory:bh(1000)},
-    {id:1024,cat:'Eğlence',             subcat:'Dijital İçerik',       person:'Ortak',  budget:500,   type:'fixed',   budgetHistory:bh(500)},
-    // Dijital Abonelik — 1.600 ₺
-    {id:1025,cat:'Dijital Abonelik',    subcat:'Dizi/Film Platformu',  person:'Ortak',  budget:600,   type:'fixed',   budgetHistory:bh(600)},
-    {id:1026,cat:'Dijital Abonelik',    subcat:'Müzik Servisi',        person:'Ortak',  budget:350,   type:'fixed',   budgetHistory:bh(350)},
-    {id:1027,cat:'Dijital Abonelik',    subcat:'Bulut Depolama',       person:'Kişi 1', budget:300,   type:'fixed',   budgetHistory:bh(300)},
-    {id:1028,cat:'Dijital Abonelik',    subcat:'Oyun Servisi',         person:'Kişi 2', budget:350,   type:'fixed',   budgetHistory:bh(350)},
-    // Teknoloji & Tasarım — 2.000 ₺
-    {id:1029,cat:'Teknoloji & Tasarım', subcat:'Tasarım Yazılımı',     person:'Kişi 1', budget:900,   type:'fixed',   budgetHistory:bh(900)},
-    {id:1030,cat:'Teknoloji & Tasarım', subcat:'Ofis & İşbirliği',     person:'Kişi 1', budget:600,   type:'fixed',   budgetHistory:bh(600)},
-    {id:1031,cat:'Teknoloji & Tasarım', subcat:'Geliştirici Araçları', person:'Kişi 1', budget:500,   type:'fixed',   budgetHistory:bh(500)},
-    // Kişisel — 6.000 ₺
-    {id:1032,cat:'Kişisel',             subcat:'Giyim',                person:'Ortak',  budget:2500,  type:'variable',budgetHistory:bh(2500)},
-    {id:1033,cat:'Kişisel',             subcat:'Kozmetik/Bakım',       person:'Kişi 2', budget:1500,  type:'variable',budgetHistory:bh(1500)},
-    {id:1034,cat:'Kişisel',             subcat:'Kuaför/Berber',        person:'Ortak',  budget:1500,  type:'variable',budgetHistory:bh(1500)},
-    {id:1035,cat:'Kişisel',             subcat:'Cep Harçlığı',         person:'Kişi 1', budget:500,   type:'variable',budgetHistory:bh(500)},
-    // Spor — 2.500 ₺
-    {id:1036,cat:'Spor',                subcat:'Spor Kulübü Üyeliği',  person:'Ortak',  budget:2000,  type:'fixed',   budgetHistory:bh(2000)},
-    {id:1037,cat:'Spor',                subcat:'Spor Malzemesi',       person:'Ortak',  budget:500,   type:'variable',budgetHistory:bh(500)},
-    // Destek — 3.000 ₺
-    {id:1038,cat:'Destek',              subcat:'Aile Yardımı',         person:'Ortak',  budget:3000,  type:'fixed',   budgetHistory:bh(3000)},
-    // Banka & Ödemeler — 5.000 ₺
-    {id:1039,cat:'Banka & Ödemeler',    subcat:'Kredi Ödemesi',        person:'Ortak',  budget:5000,  type:'fixed',   budgetHistory:bh(5000)},
-    // Birikim — 15.000 ₺ (hedef)
-    {id:1040,cat:'Birikim',             subcat:'Acil Fon',             person:'Ortak',  budget:7000,  type:'fixed',   budgetHistory:bh(7000)},
-    {id:1041,cat:'Birikim',             subcat:'Uzun Vadeli Birikim',  person:'Ortak',  budget:5000,  type:'fixed',   budgetHistory:bh(5000)},
-    {id:1042,cat:'Birikim',             subcat:'Emeklilik',            person:'Ortak',  budget:3000,  type:'fixed',   budgetHistory:bh(3000)},
+    {id:1001,cat:'Konut',   subcat:'Kira',               person:'Aile',   budget:25000,type:'fixed',   budgetHistory:[{from:'2000-01',amount:25000}]},
+    {id:1002,cat:'Konut',   subcat:'Aidat',               person:'Aile',   budget:2200, type:'fixed',   budgetHistory:[{from:'2000-01',amount:2200}]},
+    {id:1003,cat:'Konut',   subcat:'Elektrik',            person:'Aile',   budget:1800, type:'variable',budgetHistory:[{from:'2000-01',amount:1800}]},
+    {id:1004,cat:'Konut',   subcat:'Doğalgaz',            person:'Aile',   budget:2000, type:'variable',budgetHistory:[{from:'2000-01',amount:2000}]},
+    {id:1005,cat:'Konut',   subcat:'Su',                  person:'Aile',   budget:600,  type:'fixed',   budgetHistory:[{from:'2000-01',amount:600}]},
+    {id:1006,cat:'Konut',   subcat:'İnternet',            person:'Aile',   budget:900,  type:'fixed',   budgetHistory:[{from:'2000-01',amount:900}]},
+    {id:1007,cat:'Gıda',    subcat:'Market',              person:'Aile',   budget:9000, type:'variable',budgetHistory:[{from:'2000-01',amount:9000}]},
+    {id:1008,cat:'Gıda',    subcat:'Manav/Kasap',         person:'Aile',   budget:2500, type:'variable',budgetHistory:[{from:'2000-01',amount:2500}]},
+    {id:1009,cat:'Fatura',  subcat:'Telefon',             person:'Kişi 1', budget:1300, type:'fixed',   budgetHistory:[{from:'2000-01',amount:1300}]},
+    {id:1010,cat:'Fatura',  subcat:'Telefon',             person:'Kişi 2', budget:1100, type:'fixed',   budgetHistory:[{from:'2000-01',amount:1100}]},
+    {id:1011,cat:'Fatura',  subcat:'Sağlık Sigortası',    person:'Aile',   budget:3800, type:'fixed',   budgetHistory:[{from:'2000-01',amount:3800}]},
+    {id:1012,cat:'Ulaşım',  subcat:'Toplu Taşıma',        person:'Aile',   budget:1800, type:'fixed',   budgetHistory:[{from:'2000-01',amount:1800}]},
+    {id:1013,cat:'Ulaşım',  subcat:'Akaryakıt',           person:'Kişi 1', budget:3500, type:'variable',budgetHistory:[{from:'2000-01',amount:3500}]},
+    {id:1014,cat:'Sağlık',  subcat:'İlaç',                person:'Aile',   budget:1000, type:'variable',budgetHistory:[{from:'2000-01',amount:1000}]},
+    {id:1015,cat:'Sağlık',  subcat:'Doktor',              person:'Aile',   budget:1500, type:'variable',budgetHistory:[{from:'2000-01',amount:1500}]},
+    {id:1016,cat:'Eğitim',  subcat:'Okul Ücreti',         person:'Aile',   budget:7500, type:'fixed',   budgetHistory:[{from:'2000-01',amount:7500}]},
+    {id:1017,cat:'Eğitim',  subcat:'Kurs/Dershane',       person:'Aile',   budget:2000, type:'fixed',   budgetHistory:[{from:'2000-01',amount:2000}]},
+    {id:1018,cat:'Eğlence', subcat:'Yemek Dışarıda',      person:'Aile',   budget:4000, type:'variable',budgetHistory:[{from:'2000-01',amount:4000}]},
+    {id:1019,cat:'Eğlence', subcat:'Sinema/Tiyatro',      person:'Aile',   budget:800,  type:'variable',budgetHistory:[{from:'2000-01',amount:800}]},
+    {id:1020,cat:'Spor',    subcat:'Spor Salonu Üyeliği', person:'Kişi 1', budget:1600, type:'fixed',   budgetHistory:[{from:'2000-01',amount:1600}]},
+    {id:1021,cat:'Spor',    subcat:'Spor Salonu Üyeliği', person:'Kişi 2', budget:1400, type:'fixed',   budgetHistory:[{from:'2000-01',amount:1400}]},
+    {id:1022,cat:'Kişisel', subcat:'Giyim',               person:'Kişi 1', budget:2500, type:'variable',budgetHistory:[{from:'2000-01',amount:2500}]},
+    {id:1023,cat:'Kişisel', subcat:'Giyim',               person:'Kişi 2', budget:2000, type:'variable',budgetHistory:[{from:'2000-01',amount:2000}]},
+    {id:1024,cat:'Kişisel', subcat:'Kozmetik/Bakım',      person:'Kişi 2', budget:1500, type:'variable',budgetHistory:[{from:'2000-01',amount:1500}]},
+    {id:1025,cat:'Kişisel', subcat:'Kuaför/Berber',       person:'Aile',   budget:1200, type:'variable',budgetHistory:[{from:'2000-01',amount:1200}]},
+    {id:1026,cat:'Teknoloji',subcat:'Abonelik',            person:'Aile',   budget:1500, type:'fixed',   budgetHistory:[{from:'2000-01',amount:1500}]},
+    {id:1027,cat:'Birikim', subcat:'Acil Fon',            person:'Aile',   budget:5000, type:'variable',budgetHistory:[{from:'2000-01',amount:5000}]},
+    {id:1028,cat:'Yatırım', subcat:'Altın',               person:'Aile',   budget:2800, type:'variable',budgetHistory:[{from:'2000-01',amount:2800}]},
   ];
-  // Toplam bütçe: ~96.600 ₺  |  Birikim: 15.000 ₺  |  Harcama: ~81.600 ₺
 
   state.transactions=[
-    // Konut — ay başı sabit ödemeler
-    {id:2001,date:d(1), cat:'Konut',               subcat:'Kira',                person:'Ortak',  payment:'Havale',         amount:20000, note:'Aylık kira'},
-    {id:2002,date:d(1), cat:'Konut',               subcat:'Aidat',               person:'Ortak',  payment:'Havale',         amount:2500,  note:''},
-    {id:2003,date:d(2), cat:'Konut',               subcat:'Elektrik & Su',       person:'Ortak',  payment:'Otomatik Ödeme', amount:2320,  note:''},
-    {id:2004,date:d(2), cat:'Konut',               subcat:'Doğalgaz',            person:'Ortak',  payment:'Otomatik Ödeme', amount:1480,  note:''},
-    {id:2005,date:d(3), cat:'Konut',               subcat:'İnternet',            person:'Ortak',  payment:'Otomatik Ödeme', amount:600,   note:''},
-    // Birikim — ay başı otomatik transfer
-    {id:2006,date:d(1), cat:'Birikim',             subcat:'Acil Fon',            person:'Ortak',  payment:'Havale',         amount:7000,  note:'Aylık birikim transferi'},
-    {id:2007,date:d(1), cat:'Birikim',             subcat:'Uzun Vadeli Birikim', person:'Ortak',  payment:'Havale',         amount:5000,  note:''},
-    {id:2008,date:d(1), cat:'Birikim',             subcat:'Emeklilik',           person:'Ortak',  payment:'Havale',         amount:3000,  note:''},
-    // Banka
-    {id:2009,date:d(5), cat:'Banka & Ödemeler',   subcat:'Kredi Ödemesi',       person:'Ortak',  payment:'Otomatik Ödeme', amount:5000,  note:''},
-    // Eğitim — sabit ödemeler
-    {id:2010,date:d(3), cat:'Eğitim',              subcat:'Kurs/Dershane',       person:'Kişi 1', payment:'Havale',         amount:5000,  note:'Aylık kurs'},
-    {id:2011,date:d(4), cat:'Eğitim',              subcat:'Dil Kursu',           person:'Kişi 2', payment:'Havale',         amount:2000,  note:''},
-    // Spor & Destek
-    {id:2012,date:d(2), cat:'Spor',                subcat:'Spor Kulübü Üyeliği', person:'Ortak', payment:'Havale',         amount:2000,  note:'Aylık üyelik'},
-    {id:2013,date:d(5), cat:'Destek',              subcat:'Aile Yardımı',        person:'Ortak',  payment:'Havale',         amount:3000,  note:''},
-    // Dijital Abonelikler
-    {id:2014,date:d(3), cat:'Dijital Abonelik',    subcat:'Dizi/Film Platformu', person:'Ortak',  payment:'Otomatik Ödeme', amount:599,   note:''},
-    {id:2015,date:d(3), cat:'Dijital Abonelik',    subcat:'Müzik Servisi',       person:'Ortak',  payment:'Otomatik Ödeme', amount:349,   note:''},
-    {id:2016,date:d(3), cat:'Dijital Abonelik',    subcat:'Bulut Depolama',      person:'Kişi 1', payment:'Otomatik Ödeme', amount:299,   note:''},
-    // Teknoloji
-    {id:2017,date:d(3), cat:'Teknoloji & Tasarım', subcat:'Tasarım Yazılımı',    person:'Kişi 1', payment:'Kredi Kartı',    amount:899,   note:''},
-    {id:2018,date:d(3), cat:'Teknoloji & Tasarım', subcat:'Ofis & İşbirliği',    person:'Kişi 1', payment:'Kredi Kartı',    amount:599,   note:''},
-    // Sağlık
-    {id:2019,date:d(4), cat:'Sağlık',              subcat:'Reçeteli İlaç',       person:'Kişi 1', payment:'Kredi Kartı',    amount:1450,  note:''},
-    {id:2020,date:d(9), cat:'Sağlık',              subcat:'Eczane',              person:'Ortak',  payment:'Nakit',          amount:680,   note:''},
-    // Gıda — değişken harcamalar
-    {id:2021,date:d(5), cat:'Gıda',                subcat:'Market',              person:'Ortak',  payment:'Kredi Kartı',    amount:2800,  note:'Haftalık market'},
-    {id:2022,date:d(6), cat:'Gıda',                subcat:'Manav',               person:'Ortak',  payment:'Nakit',          amount:800,   note:''},
-    {id:2023,date:d(8), cat:'Gıda',                subcat:'Kasap',               person:'Ortak',  payment:'Nakit',          amount:1200,  note:'Aylık et alışverişi'},
-    {id:2024,date:d(12),cat:'Gıda',                subcat:'Market',              person:'Ortak',  payment:'Kredi Kartı',    amount:1900,  note:''},
-    {id:2025,date:d(13),cat:'Gıda',                subcat:'Pazar',               person:'Ortak',  payment:'Nakit',          amount:700,   note:'Haftalık pazar'},
-    {id:2026,date:d(16),cat:'Gıda',                subcat:'Fırın',               person:'Ortak',  payment:'Nakit',          amount:300,   note:''},
-    // Ulaşım
-    {id:2027,date:d(7), cat:'Ulaşım',              subcat:'Akaryakıt',           person:'Ortak',  payment:'Kredi Kartı',    amount:1800,  note:''},
-    {id:2028,date:d(9), cat:'Ulaşım',              subcat:'Toplu Taşıma',        person:'Kişi 1', payment:'Nakit',          amount:400,   note:''},
-    {id:2029,date:d(15),cat:'Ulaşım',              subcat:'Akaryakıt',           person:'Ortak',  payment:'Kredi Kartı',    amount:1600,  note:''},
-    // Eğlence & Kişisel
-    {id:2030,date:d(10),cat:'Eğlence',             subcat:'Yemek Dışarıda',      person:'Ortak',  payment:'Kredi Kartı',    amount:1250,  note:''},
-    {id:2031,date:d(14),cat:'Eğlence',             subcat:'Sinema/Tiyatro',      person:'Ortak',  payment:'Kredi Kartı',    amount:480,   note:''},
-    {id:2032,date:d(11),cat:'Kişisel',             subcat:'Kuaför/Berber',       person:'Ortak',  payment:'Nakit',          amount:800,   note:''},
-    {id:2033,date:d(16),cat:'Kişisel',             subcat:'Giyim',               person:'Ortak',  payment:'Kredi Kartı',    amount:1490,  note:'Sezon alışverişi'},
+    {id:2001,date:d(1), cat:'Konut',   subcat:'Kira',              person:'Aile',   payment:'Havale',         amount:22000,note:'Aylık kira'},
+    {id:2002,date:d(1), cat:'Konut',   subcat:'Aidat',             person:'Aile',   payment:'Havale',         amount:2000, note:''},
+    {id:2003,date:d(2), cat:'Konut',   subcat:'Elektrik',          person:'Aile',   payment:'Otomatik Ödeme', amount:1420, note:''},
+    {id:2004,date:d(2), cat:'Konut',   subcat:'İnternet',          person:'Aile',   payment:'Otomatik Ödeme', amount:800,  note:''},
+    {id:2005,date:d(3), cat:'Gıda',    subcat:'Market',            person:'Aile',   payment:'Kredi Kartı',    amount:2340, note:'Haftalık market'},
+    {id:2006,date:d(4), cat:'Eğlence', subcat:'Yemek Dışarıda',   person:'Aile',   payment:'Kredi Kartı',    amount:850,  note:''},
+    {id:2007,date:d(5), cat:'Kişisel', subcat:'Kuaför/Berber',    person:'Kişi 2', payment:'Nakit',          amount:600,  note:''},
+    {id:2008,date:d(7), cat:'Sağlık',  subcat:'İlaç',              person:'Aile',   payment:'Nakit',          amount:280,  note:''},
+    {id:2009,date:d(8), cat:'Eğitim',  subcat:'Okul Ücreti',      person:'Aile',   payment:'Havale',         amount:6500, note:'Aylık taksit'},
+    {id:2010,date:d(10),cat:'Gıda',    subcat:'Market',            person:'Aile',   payment:'Kredi Kartı',    amount:1850, note:''},
+    {id:2011,date:d(11),cat:'Gıda',    subcat:'Manav/Kasap',      person:'Aile',   payment:'Nakit',          amount:750,  note:''},
+    {id:2012,date:d(12),cat:'Eğlence', subcat:'Sinema/Tiyatro',   person:'Aile',   payment:'Kredi Kartı',    amount:450,  note:'Film'},
+    {id:2013,date:d(14),cat:'Fatura',  subcat:'Telefon',           person:'Kişi 1', payment:'Otomatik Ödeme', amount:1200, note:''},
+    {id:2014,date:d(14),cat:'Fatura',  subcat:'Telefon',           person:'Kişi 2', payment:'Otomatik Ödeme', amount:1000, note:''},
+    {id:2015,date:d(15),cat:'Kişisel', subcat:'Giyim',             person:'Kişi 1', payment:'Kredi Kartı',    amount:1200, note:''},
+    {id:2016,date:d(17),cat:'Ulaşım',  subcat:'Akaryakıt',         person:'Kişi 1', payment:'Kredi Kartı',    amount:2100, note:''},
+    {id:2017,date:d(18),cat:'Spor',    subcat:'Spor Salonu Üyeliği',person:'Kişi 1',payment:'Havale',         amount:1500, note:''},
+    {id:2018,date:d(18),cat:'Spor',    subcat:'Spor Salonu Üyeliği',person:'Kişi 2',payment:'Havale',         amount:1200, note:''},
+    {id:2019,date:d(20),cat:'Birikim', subcat:'Acil Fon',          person:'Aile',   payment:'Havale',         amount:5000, note:'Aylık birikim'},
   ];
 
   state.milestones=[
-    {id:3001,desc:'Maaş artışı bekleniyor',     month:fm(4), amount:10000,type:'income_increase'},
-    {id:3002,desc:'Kredi ödemesi bitiyor',       month:fm(10),amount:5000, type:'expense_decrease'},
+    {id:3001,desc:'Maaş zammı',          month:fm(3), amount:8000,type:'income_increase'},
+    {id:3002,desc:'Okul ödemesi bitiyor',month:fm(5), amount:8500,type:'expense_decrease'},
   ];
 
-  const si=document.getElementById('s-income');const sr=document.getElementById('s-reserve');
-  if(si)si.value=state.income;if(sr)sr.value=state.reserve;
-
-  renderPersonList();renderCategoryList();renderBudgetSetup();renderMilestoneSetup();
+  // Income/reserve input'larını doldur (step 1 görünürken)
+  // goStep(1) çağrıldığında da yenilenir; burada da set ediyoruz
+  setTimeout(()=>{
+    const si=document.getElementById('s-income');
+    const sr=document.getElementById('s-reserve');
+    if(si) si.value=state.income;
+    if(sr) sr.value=state.reserve;
+  }, 0);
+  // renders are called in init() after requestAnimationFrame
 }
 
 function renderPersonList(){
@@ -1999,62 +1318,27 @@ function renderCategoryList(){
     <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--md-outline-variant);">
       <span style="font-size:18px;width:28px;text-align:center;">${CAT_EMOJIS[c]||'📦'}</span>
       <input class="field-input" style="flex:1;padding:8px 12px;" value="${esc(c)}" onchange="state.categories[${i}]=this.value;">
-      <button class="btn-icon" onclick="const rc=state.categories.splice(${i},1)[0];state.budgetItems=(state.budgetItems||[]).filter(b=>b.cat!==rc);renderCategoryList();renderBudgetSetup();">✕</button>
+      <button class="btn-icon" onclick="state.categories.splice(${i},1);renderCategoryList();">✕</button>
     </div>`).join('');
 }
 function addCategory(){state.categories.push('Yeni Kategori');renderCategoryList();}
 
-function changeSetupCat(i,newCat){
-  const firstSub=getSubcatsForCat(newCat)[0]||'';
-  state.budgetItems[i].cat=newCat;
-  state.budgetItems[i].subcat=firstSub;
-  renderBudgetSetup();
-}
-function changeSetupSubcat(i,val){
-  if(val==='__new__'){
-    const v=prompt('Yeni alt kategori:');
-    if(v&&v.trim()){
-      const cat=state.budgetItems[i].cat;
-      if(!state.customSubcats)state.customSubcats={};
-      if(!state.customSubcats[cat])state.customSubcats[cat]=[];
-      if(!state.customSubcats[cat].includes(v.trim()))state.customSubcats[cat].push(v.trim());
-      state.budgetItems[i].subcat=v.trim();
-      renderBudgetSetup();
-    }
-    // if cancelled, re-render to reset select to current subcat
-    else renderBudgetSetup();
-  } else {
-    state.budgetItems[i].subcat=val;
-  }
-}
 function renderBudgetSetup(){
   if(!state.budgetItems)state.budgetItems=[];
+  const dls=state.categories.map(c=>`<datalist id="dl-${c.replace(/[^a-zA-Z0-9]/g,'_')}">${(SUB[c]||[]).map(s=>`<option value="${esc(s)}">`).join('')}</datalist>`).join('');
   document.getElementById('budget-setup-tbody').innerHTML=state.budgetItems.map((item,i)=>{
+    const dlId=`dl-${(item.cat||'').replace(/[^a-zA-Z0-9]/g,'_')}`;
     const isFixed=item.type==='fixed';
-    const subcatOpts=getSubcatsForCat(item.cat);
-    // if item's subcat is not in the list (stale data), reset to first valid
-    if(item.subcat&&!subcatOpts.includes(item.subcat)){
-      item.subcat=subcatOpts[0]||'';
-    }
-    const subcatSel=subcatOpts.map(s=>`<option value="${esc(s)}"${s===item.subcat?' selected':''}>${esc(s)}</option>`).join('')
-      +`<option value="__new__">+ Yeni...</option>`;
-    const selStyle='border:1px solid var(--md-outline-variant);border-radius:6px;padding:6px 8px;font-family:\'Roboto\',sans-serif;font-size:13px;background:transparent;cursor:pointer;max-width:160px;';
     return `<tr>
-      <td><select onchange="changeSetupCat(${i},this.value)" style="${selStyle}">
+      <td><select onchange="state.budgetItems[${i}].cat=this.value;renderBudgetSetup();" style="border:1px solid var(--md-outline-variant);border-radius:6px;padding:6px 8px;font-family:'Roboto',sans-serif;font-size:13px;background:transparent;cursor:pointer;">
         ${state.categories.map(c=>`<option ${c===item.cat?'selected':''}>${esc(c)}</option>`).join('')}
       </select></td>
-      <td><select onchange="changeSetupSubcat(${i},this.value)" style="${selStyle}">${subcatSel}</select></td>
-      <td><select onchange="state.budgetItems[${i}].person=this.value" style="${selStyle}">
-        ${state.persons.map(p=>`<option ${p.name===item.person?'selected':''}>${esc(p.name)}</option>`).join('')}
-      </select></td>
-      <td><select onchange="state.budgetItems[${i}].type=this.value" style="${selStyle}">
-        <option value="variable" ${!isFixed?'selected':''}>↕ Değişken</option>
-        <option value="fixed" ${isFixed?'selected':''}>🔒 Sabit</option>
-      </select></td>
+      <td><input value="${esc(item.subcat||'')}" list="${dlId}" onchange="state.budgetItems[${i}].subcat=this.value" style="border:none;background:transparent;font-size:13px;width:100%;font-family:'Roboto',sans-serif;" placeholder="Alt kategori..."></td>
+      <td style="text-align:center;"><input type="checkbox" ${isFixed?'checked':''} title="Sabit gider" style="width:16px;height:16px;cursor:pointer;accent-color:var(--md-primary);" onchange="state.budgetItems[${i}].type=this.checked?'fixed':'variable'"></td>
       <td class="text-right"><input type="number" value="${getBudgetForMonth(item,'2000-01')}" min="0" onchange="setBudgetSetupAmount(${i},+this.value)" style="border:1px solid var(--md-outline-variant);border-radius:6px;padding:6px 8px;font-family:'Roboto',sans-serif;font-size:13px;text-align:right;width:90px;background:transparent;"></td>
       <td><button class="btn-icon" onclick="state.budgetItems.splice(${i},1);renderBudgetSetup();">✕</button></td>
     </tr>`;
-  }).join('');
+  }).join('')+dls;
 }
 function addBudgetRow(){
   state.budgetItems.push({
@@ -2123,131 +1407,216 @@ function updateMsHelper(helperId,amountId,typeId){
 }
 
 function goStep(n){
-  repairEmptyOnboardingIfNeeded();
-  // Always flush current step data to state before navigating
-  const si=document.getElementById('s-income');
-  const sr=document.getElementById('s-reserve');
-  if(si&&+si.value>0) state.income=+si.value;
-  if(sr&&+sr.value>=0) state.reserve=+sr.value;
-  // Flush person names
-  document.querySelectorAll('#person-list input.field-input').forEach((inp,i)=>{
-    if(state.persons[i]&&inp.value.trim()) state.persons[i].name=inp.value.trim();
-  });
+  // Save income/reserve from step 1 before navigating
+  const incEl=document.getElementById('s-income');
+  const resEl=document.getElementById('s-reserve');
+  if(n>1){
+    state.income  = +incEl?.value  || state.income;
+    state.reserve = +resEl?.value  || state.reserve;
+  }
+
+  // Hide all steps, show target
   document.querySelectorAll('.setup-step').forEach(s=>s.classList.remove('active'));
   document.getElementById(`step${n}`)?.classList.add('active');
-  if(n===1) renderPersonList();
-  if(n===2) renderCategoryList();
-  if(n===3) renderBudgetSetup();
-  if(n===4) {
-    renderMilestoneSetup();
-    const cnt=state.milestones?.length||0;
-    const b=document.getElementById('step4-body');
-    if(b) b.textContent=cnt>0?`${cnt} değişiklik var. Düzenleyin veya yenilerini ekleyin.`:'Gelecekteki değişiklikleri ekleyin (kira artışı, zam, tek seferlik gider vb.)';
+
+  // Re-render the target step's content every time — guarantees data shows
+  switch(n){
+    case 1:
+      if(incEl) incEl.value = state.income;
+      if(resEl) resEl.value = state.reserve;
+      renderPersonList();
+      break;
+    case 2:
+      renderCategoryList();
+      break;
+    case 3:
+      renderBudgetSetup();
+      break;
+    case 4:
+      renderMilestoneSetup();
+      break;
   }
 }
-function finishSetup(){
-  // Flush any uncommitted DOM values before saving
-  const si=document.getElementById('s-income');
-  const sr=document.getElementById('s-reserve');
-  if(si&&+si.value>0) state.income=+si.value;
-  if(sr&&+sr.value>=0) state.reserve=+sr.value;
-  // Flush person name inputs
-  document.querySelectorAll('#person-list input.field-input').forEach((inp,i)=>{
-    if(state.persons[i]&&inp.value.trim()) state.persons[i].name=inp.value.trim();
-  });
-  state.setupDone=true;
-  state.transactions=state.transactions||[];
-  ensureDataFlags();
-  state.dataFlags.customizedInSetup=true;
-  saveState();
-  showApp();
-}
+function finishSetup(){state.setupDone=true;state.transactions=state.transactions||[];saveState();showApp();}
 
 // ═══════════════════════════════════════════════════════
 // APP SHELL
 // ═══════════════════════════════════════════════════════
 function showApp(){
+  document.getElementById('email-screen').style.display='none';
   document.getElementById('onboarding').style.display='none';
   document.getElementById('main-app').style.display='block';
-  document.getElementById('fab-wrap').style.display='flex';
-  document.getElementById('bottom-nav').style.display='block';
+  document.getElementById('top-bar').style.display='flex';
+  document.getElementById('bottom-nav').style.display='flex';
+  document.getElementById('fab').style.display='flex';
+  // top avatar
+  const av=document.getElementById('top-avatar');
+  if(av)av.textContent=(state.email||'?')[0].toUpperCase();
+  // sb-month (hidden compat)
   const m=document.getElementById('sb-month');
   if(m)m.textContent=new Date().toLocaleDateString('tr-TR',{month:'long',year:'numeric'});
   renderNavFooter();renderSampleBanner();
   renderIfDirty('dashboard');
 }
 
-function toggleFabDial(){
-  const wrap=document.getElementById('fab-mini-wrap');
-  const scrim=document.getElementById('fab-scrim');
-  const icon=document.getElementById('fab-main-icon');
-  const open=wrap.classList.toggle('open');
-  scrim.classList.toggle('open',open);
-  icon.textContent=open?'✕':'+';
-}
-function closeFabDial(){
-  document.getElementById('fab-mini-wrap').classList.remove('open');
-  document.getElementById('fab-scrim').classList.remove('open');
-  document.getElementById('fab-main-icon').textContent='+';
-}
-
 function renderNavFooter(){
   const income=getTotalIncome();
   const budget=(state.budgetItems||[]).reduce((s,b)=>s+getBudgetForMonth(b,_activeMonth),0);
   const diff=budget-income;
-  const si=document.getElementById('sb-income');const sb=document.getElementById('sb-budget');const sd=document.getElementById('sb-deficit');
-  if(si)si.textContent='₺'+fmt(income);
-  if(sb)sb.textContent='₺'+fmt(budget);
-  if(sd){sd.textContent=(diff>=0?'- ':'+')+'₺'+fmt(Math.abs(diff));sd.className='nav-footer-val '+(diff>0?'neg':'pos');}
+  // Settings profile card
+  const sed=document.getElementById('settings-email-display');
+  const sav=document.getElementById('settings-avatar');
+  const sid=document.getElementById('settings-income-display');
+  const sbd=document.getElementById('settings-budget-display');
+  const sdd=document.getElementById('settings-deficit-display');
+  if(sed)sed.textContent=state.email||'';
+  if(sav)sav.textContent=(state.email||'?')[0].toUpperCase();
+  if(sid)sid.textContent='₺'+fmt(income);
+  if(sbd)sbd.textContent='₺'+fmt(budget);
+  if(sdd){sdd.textContent=(diff>=0?'- ':'+')+'₺'+fmt(Math.abs(diff));sdd.style.color=diff>0?'var(--md-error)':'var(--md-success)';}
+  // top avatar
+  const tav=document.getElementById('top-avatar');
+  if(tav)tav.textContent=(state.email||'?')[0].toUpperCase();
 }
 
 function renderSampleBanner(){
   const el=document.getElementById('sample-data-banner');if(!el)return;
-  ensureDataFlags();
-  const f=state.dataFlags;
-  const hide=f.bannerDismissed||f.customizedInSetup||f.customizedInSettings||sessionStorage.getItem('sbDismissed');
-  if(hide){ el.innerHTML=''; return; }
-  const dbg=_DEBUG_AUTH?`dataFlags: kurulum=${f.customizedInSetup} ayar=${f.customizedInSettings} anladim=${f.bannerDismissed}`:'';
-  el.innerHTML=`<div class="banner info mb16"${dbg?' title="'+esc(dbg)+'"':''}><span class="banner-icon">👋</span><div class="banner-body" style="flex:1;"><div class="banner-title">Örnek verilerle bakıyorsunuz</div><div class="banner-msg">Kişi adlarını, bütçe tutarlarını ve harcamaları kendi verilerinizle güncelleyin.</div></div><button class="btn btn-text btn-sm" onclick="dismissSampleBannerPersist()">Anladım</button></div>`;
+  // Banner'ı göster: sadece henüz özelleştirilmemişse
+  if(state.isCustomized){el.innerHTML='';return;}
+  el.innerHTML=`<div class="banner info mb16"><span class="banner-icon">👋</span><div class="banner-body" style="flex:1;"><div class="banner-title">Örnek verilerle bakıyorsunuz</div><div class="banner-msg">Kişi adlarını, bütçe tutarlarını veya harcamaları güncellediğinizde bu uyarı kalkar.</div></div><button class="btn btn-text btn-sm" onclick="markCustomized()">Anladım</button></div>`;
 }
 
 function showPage(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById(`page-${page}`)?.classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===page));
-  document.querySelectorAll('.bnav-item').forEach(n=>n.classList.toggle('active',n.dataset.page===page));
+  // bottom nav highlight
+  document.querySelectorAll('.bn-item').forEach(n=>n.classList.toggle('active',n.dataset.page===page));
   const titles={dashboard:'Genel Bakış',budget:'Bütçe',transactions:'Harcamalar',projection:'Projeksiyon',settings:'Ayarlar'};
   const tb=document.getElementById('top-bar-title');if(tb)tb.textContent=titles[page]||'';
-  // close mobile nav & fab dial
-  document.getElementById('nav-drawer')?.classList.remove('open');
-  document.getElementById('mob-scrim')?.classList.remove('open');
-  closeFabDial();
+  // FAB: sadece harcama eklenebilir sayfalarda görün
+  const fab=document.getElementById('fab');
+  if(fab) fab.style.display=page==='settings'||page==='projection'?'none':'flex';
   renderIfDirty(page);
 }
 
-function toggleNav(){
-  document.getElementById('nav-drawer').classList.toggle('open');
-  document.getElementById('mob-scrim').classList.toggle('open');
+
+// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// INSIGHTS (Dashboard Öneriler Paneli)
+// ═══════════════════════════════════════════════════════
+function renderInsights(budget,actual,income,netPosition){
+  const el=document.getElementById('dash-insights');if(!el)return;
+  if(!state.budgetItems?.length){el.innerHTML='';return;}
+
+  const items=state.budgetItems||[];
+  const fixedBudget=items.filter(b=>b.type==='fixed').reduce((s,b)=>s+getBudgetForMonth(b,_activeMonth),0);
+  const fixedRatio=budget.expenseTotal>0?Math.round(fixedBudget/budget.expenseTotal*100):0;
+  const savingsRate=income>0?Math.round(actual.savingsTotal/income*100):0;
+  const reserveMonths=budget.expenseTotal>0?(state.reserve/budget.expenseTotal).toFixed(1):'—';
+  const cats=[...new Set(items.map(b=>b.cat))];
+  const overBudgetCats=cats.filter(cat=>{
+    const b=budget.byCat[cat]||0,a=actual.byCat[cat]||0;
+    return a>b&&b>0;
+  });
+  const expUsedPct=budget.expenseTotal>0?Math.round(actual.expenseTotal/budget.expenseTotal*100):0;
+
+  const cards=[];
+
+  // Net pozisyon
+  cards.push({
+    color: netPosition>=0?'success':'error',
+    label: 'Net Pozisyon',
+    value: (netPosition>=0?'+':'')+'₺'+fmt(Math.abs(netPosition)),
+    sub: netPosition>=0?'bu ay fazla':'bu ay açık',
+  });
+
+  // Bütçe kullanımı
+  cards.push({
+    color: expUsedPct>100?'error':expUsedPct>85?'warning':'secondary',
+    label: 'Bütçe Kullanımı',
+    value: '%'+expUsedPct,
+    sub: '₺'+fmt(actual.expenseTotal)+' / ₺'+fmt(budget.expenseTotal),
+  });
+
+  // Birikim
+  if(actual.savingsTotal>0||budget.savingsTotal>0){
+    cards.push({
+      color:'tertiary',
+      label:'Birikim',
+      value:'₺'+fmt(actual.savingsTotal||0),
+      sub: savingsRate>0?'gelirin %'+savingsRate+'i':'bütçe: ₺'+fmt(budget.savingsTotal),
+    });
+  }
+
+  // Rezerv yeterliliği
+  if(state.reserve>0){
+    const rm=parseFloat(reserveMonths);
+    cards.push({
+      color:rm<2?'warning':rm<1?'error':'primary',
+      label:'Rezerv',
+      value:reserveMonths+' aylık',
+      sub:'₺'+fmt(state.reserve)+' havuz',
+    });
+  }
+
+  // Sabit gider oranı
+  if(budget.expenseTotal>0){
+    cards.push({
+      color:fixedRatio>75?'warning':'secondary',
+      label:'Sabit Gider',
+      value:'%'+fixedRatio,
+      sub:'₺'+fmt(fixedBudget)+' / ay',
+    });
+  }
+
+  // Aşılan kategoriler
+  if(overBudgetCats.length>0){
+    cards.push({
+      color:'error',
+      label:'Aşım',
+      value:overBudgetCats.length+' kategori',
+      sub:overBudgetCats.slice(0,2).map(c=>(CAT_EMOJIS[c]||'')+''+c).join(', ')+(overBudgetCats.length>2?' +'+( overBudgetCats.length-2):''),
+    });
+  }
+
+  const colorMap={
+    success:'--md-success-container,--md-on-success-container',
+    error:'--md-error-container,--md-on-error-container',
+    warning:'--md-warning-container,--md-on-warning-container',
+    primary:'--md-primary-container,--md-on-primary-container',
+    secondary:'--md-surface-container,--md-on-surface',
+    tertiary:'--md-tertiary-container,--md-on-tertiary-container',
+  };
+
+  el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;">
+    ${cards.map(c=>{
+      const [bg,fg]=(colorMap[c.color]||colorMap.secondary).split(',');
+      return `<div style="background:var(${bg});border-radius:12px;padding:14px 16px;">
+        <div style="font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(${fg});opacity:.65;margin-bottom:6px;">${esc(c.label)}</div>
+        <div style="font-size:19px;font-weight:600;color:var(${fg});line-height:1.2;">${esc(c.value)}</div>
+        <div style="font-size:11px;color:var(${fg});opacity:.7;margin-top:3px;">${esc(c.sub)}</div>
+      </div>`;
+    }).join('')}
+  </div>`;
 }
 
 // ═══════════════════════════════════════════════════════
 // DASHBOARD
 // ═══════════════════════════════════════════════════════
 function renderDashboard(){
-  renderSampleBanner();
   renderMonthBar('dash-month-bar');
   const{budget,actual}=computeForMonth(_activeMonth);
   const income=getTotalIncome();
-
-  // BUSINESS: net position = income - all outflows (expenses + savings)
   const netPosition=income-actual.expenseTotal-actual.savingsTotal;
-  // How much of expense budget is used
   const expUsedPct=budget.expenseTotal>0?Math.round(actual.expenseTotal/budget.expenseTotal*100):0;
 
   // Alerts
   const alerts=getAlerts(budget,actual,income);
   const alertsEl=document.getElementById('dash-alerts');
   alertsEl.innerHTML=alerts.map(a=>`<div class="banner ${a.type} mb8"><span class="banner-icon">${a.type==='error'?'⚠️':a.type==='success'?'✅':'💡'}</span><div class="banner-body">${esc(a.msg)}</div></div>`).join('');
+
+  // Öneriler paneli
+  renderInsights(budget,actual,income,netPosition);
 
   // KPIs — 4 metric cards
   document.getElementById('dash-kpis').innerHTML=`
@@ -2341,10 +1710,8 @@ function renderDashboard(){
     const over=act>bud&&bud>0;
     const isSavings=cat==='Birikim';
     const items=(state.budgetItems||[]).filter(b=>b.cat===cat);
-    const allFixed=items.every(b=>b.type==='fixed');
     return `<tr ${isSavings?'class="tr-savings"':''}>
       <td><span style="font-weight:500;">${CAT_EMOJIS[cat]||'📦'} ${esc(cat)}</span></td>
-      <td><span class="${allFixed?'badge badge-tertiary':'badge badge-secondary'}">${allFixed?'🔒 Sabit':'↕ Değişken'}</span></td>
       <td class="text-right text-mono">₺${fmt(bud)}</td>
       <td class="text-right text-mono" style="color:${over?'var(--md-error)':act>0?'var(--md-success)':'var(--md-on-surface-variant)'};">${act>0?'₺'+fmt(act):'—'}</td>
       <td class="text-right text-mono" style="color:${rem<0?'var(--md-error)':act>0?'var(--md-success)':'var(--md-on-surface-variant)'};">${act>0?(rem<0?'-':'+')+'₺'+fmt(Math.abs(rem)):'—'}</td>
@@ -2355,7 +1722,7 @@ function renderDashboard(){
         <span style="font-size:11px;color:var(--md-on-surface-variant);min-width:30px;">${pct>0?'%'+pct:''}</span>
       </div></td>
     </tr>`;
-  }).join('')+`<tr class="tr-total"><td colspan="2">Toplam</td><td class="text-right text-mono">₺${fmt(budget.expenseTotal)}</td><td class="text-right text-mono">₺${fmt(actual.expenseTotal)}</td><td class="text-right text-mono" style="color:${actual.expenseTotal>budget.expenseTotal?'var(--md-error)':'var(--md-success)'};">${actual.expenseTotal>0?(actual.expenseTotal<budget.expenseTotal?'+':'-')+'₺'+fmt(Math.abs(budget.expenseTotal-actual.expenseTotal)):'—'}</td><td></td></tr>`;
+  }).join('')+`<tr class="tr-total"><td>Toplam</td><td class="text-right text-mono">₺${fmt(budget.expenseTotal)}</td><td class="text-right text-mono">₺${fmt(actual.expenseTotal)}</td><td class="text-right text-mono" style="color:${actual.expenseTotal>budget.expenseTotal?'var(--md-error)':'var(--md-success)'};">${actual.expenseTotal>0?(actual.expenseTotal<budget.expenseTotal?'+':'-')+'₺'+fmt(Math.abs(budget.expenseTotal-actual.expenseTotal)):'—'}</td><td></td></tr>`;
 
   renderNavFooter();
 }
@@ -2365,11 +1732,21 @@ function renderDashboard(){
 // ═══════════════════════════════════════════════════════
 function renderBudgetPage(){
   renderMonthBar('budget-month-bar');
+  // Gelir paneli
+  const si=document.getElementById('set-income');if(si&&document.activeElement!==si)si.value=state.income||'';
+  const sr=document.getElementById('set-reserve');if(sr&&document.activeElement!==sr)sr.value=state.reserve||'';
+  updateReserveHint();
+  renderExtraIncome();
+  const totalInc=getTotalIncome();
+  const extraSum=(state.extraIncome||[]).reduce((s,e)=>s+(e.frequency==='annual'?(e.amount||0)/12:(e.amount||0)),0);
+  const badge=document.getElementById('dash-total-income-badge');
+  if(badge)badge.innerHTML=extraSum>0?`<div style="padding:8px 14px;background:var(--md-success-container);border-radius:var(--shape-full);font-size:13px;color:var(--md-on-success-container);font-weight:500;">Toplam: ₺${fmt(totalInc)}<span style="font-size:11px;opacity:.8;"> (+₺${fmt(extraSum)} ek)</span></div>`:'';
   const{budget,actual}=computeForMonth(_activeMonth);
+  // Sıralama: kategoriye göre (kullanıcı sürükle-bırak ile özel sıra)
   const items=[...(state.budgetItems||[])].sort((a,b)=>a.cat.localeCompare(b.cat,'tr'));
   const tbody=document.getElementById('budget-tbody');
   if(!items.length){
-    tbody.innerHTML='<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Bütçe kalemi yok</div><div class="empty-body">Kalem ekle butonunu kullanın.</div></div></td></tr>';
+    tbody.innerHTML='<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Bütçe kalemi yok</div><div class="empty-body">Kalem ekle butonunu kullanın.</div></div></td></tr>';
     return;
   }
 
@@ -2380,27 +1757,29 @@ function renderBudgetPage(){
     const act=actual.byKey[`${item.cat}|${item.subcat}|${item.person}`]||0;
     const diff=bud-act;
     ct.b+=bud;ct.a+=act;
-    const pIdx=state.persons.findIndex(p=>p.name===item.person);
-    const pColor=PERSON_HEX[pIdx]||'#64748B';
     const over=act>bud&&bud>0;
     const isSavings=item.cat==='Birikim';
+    const isPending=_pendingDeleteBudget===item.id;
     const isEditing=_inlineEditId==item.id;
-
-    // History indicator: has this item been customised for any month beyond baseline?
     const hasHistory=(item.budgetHistory||[]).length>1;
-    // Is this month specifically customised?
     const customThisMonth=hasCustomForMonth(item,_activeMonth);
 
-    // Budget amount cell — two modes
+    // Kategori select
+    const catOpts=state.categories.map(c=>`<option value="${esc(c)}"${c===item.cat?' selected':''}>${CAT_EMOJIS[c]||'📦'} ${esc(c)}</option>`).join('');
+    // Alt kategori datalist
+    const dlId=`dl-b-${item.id}`;
+    const subcatOpts=getSubcats(item.cat).map(s=>`<option value="${esc(s)}">`).join('');
+
+    // Bütçe inline edit cell
     const budgetCell = isEditing
-      ? `<td class="text-right" style="min-width:180px;">
+      ? `<td class="text-right" style="min-width:160px;">
            <div style="display:flex;align-items:center;gap:4px;justify-content:flex-end;">
              <input type="number" id="inline-amount-input" class="inline-input"
                value="${bud}" min="0"
                onkeydown="if(event.key==='Enter')saveInlineEdit('${item.id}');else if(event.key==='Escape')cancelInlineEdit();"
                oninput="document.getElementById('inline-edit-hint-${item.id}').style.opacity=1;">
              <button class="btn-icon" style="color:var(--md-success);" title="Kaydet (Enter)" onclick="saveInlineEdit('${item.id}')">✓</button>
-             <button class="btn-icon" style="color:var(--md-error);"   title="İptal (Esc)"   onclick="cancelInlineEdit()">✕</button>
+             <button class="btn-icon" style="color:var(--md-error);" title="İptal (Esc)" onclick="cancelInlineEdit()">✕</button>
            </div>
            <div id="inline-edit-hint-${item.id}" style="font-size:10px;color:var(--md-primary);margin-top:3px;text-align:right;opacity:.7;">
              📅 ${fmtMonth(_activeMonth)} ve ilerisi
@@ -2410,29 +1789,52 @@ function renderBudgetPage(){
            ₺${fmt(bud)}${customThisMonth?`<span class="history-badge" title="${fmtMonth(_activeMonth)} için özel tutar">bu ay</span>`:''}${hasHistory&&!customThisMonth?`<span class="history-dot" title="Geçmişte değişti"></span>`:''}
          </td>`;
 
-    rows+=`<tr class="${isSavings?'tr-savings':''}${isEditing?' inline-edit-active':''}">
-      <td>${item.cat!==prevCat?`<span class="fw500">${CAT_EMOJIS[item.cat]||'📦'} ${esc(item.cat)}</span>`:''}</td>
-      <td>${esc(item.subcat)||'<span style="color:var(--md-on-surface-variant)">—</span>'}</td>
-      <td><span style="font-size:11px;font-weight:500;color:${pColor};background:${pColor}22;padding:3px 10px;border-radius:20px;">${esc(item.person)}</span></td>
-      <td><span class="${item.type==='fixed'?'badge badge-tertiary':'badge badge-secondary'}">${item.type==='fixed'?'🔒 Sabit':'↕ Değişken'}</span></td>
+    rows+=`<tr data-id="${item.id}"
+      draggable="true"
+      ondragstart="budgetDragStart(event,'${item.id}')"
+      ondragover="budgetDragOver(event,'${item.id}')"
+      ondragleave="budgetDragLeave(event)"
+      ondrop="budgetDrop(event,'${item.id}')"
+      ondragend="budgetDragEnd(event)"
+      class="${isSavings?'tr-savings':''}${isEditing?' inline-edit-active':''}">
+      <td>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <span style="cursor:grab;font-size:15px;color:var(--md-on-surface-variant);opacity:.5;flex-shrink:0;user-select:none;padding-right:2px;" title="Sırayı değiştir">⠿</span>
+          <select style="border:none;background:transparent;font-size:13px;cursor:pointer;font-family:inherit;flex:1;min-width:0;color:inherit;"
+            onchange="saveBudgetField('${item.id}','cat',this.value)">
+            ${catOpts}
+          </select>
+        </div>
+      </td>
+      <td>
+        <input type="text" list="${dlId}" value="${esc(item.subcat||'')}"
+          placeholder="—"
+          style="border:none;background:transparent;font-size:13px;width:100%;min-width:90px;font-family:inherit;color:inherit;"
+          onchange="saveBudgetField('${item.id}','subcat',this.value)">
+        <datalist id="${dlId}">${subcatOpts}</datalist>
+      </td>
+      <td style="text-align:center;">
+        <input type="checkbox" ${item.type==='fixed'?'checked':''} title="Sabit gider"
+          style="width:16px;height:16px;cursor:pointer;accent-color:var(--md-primary);"
+          onchange="toggleBudgetFixed('${item.id}')">
+      </td>
       ${budgetCell}
       <td class="text-right text-mono" style="color:${over?'var(--md-error)':act>0?'var(--md-success)':'var(--md-on-surface-variant)'};">${act>0?'₺'+fmt(act):'—'}</td>
       <td class="text-right text-mono" style="color:${act>0?diff<0?'var(--md-error)':'var(--md-success)':'var(--md-on-surface-variant)'};">${act>0?(diff<0?'-':'+')+'₺'+fmt(Math.abs(diff)):'—'}</td>
-      <td><button class="btn-icon" title="Kategori/kişi/tür düzenle" onclick="openEditBudgetModal('${item.id}')">⋮</button></td>
-      <td><button class="btn-icon" onclick="confirmDeleteBudget('${item.id}')" title="Sil">✕</button></td>
+      <td>${isPending
+        ?`<span class="confirm-inline"><button class="btn btn-danger-text btn-sm" onclick="confirmDeleteBudget('${item.id}')">Sil</button><button class="btn btn-text btn-sm" onclick="_pendingDeleteBudget=null;renderBudgetPage();">İptal</button></span>`
+        :`<button class="btn-icon" onclick="_pendingDeleteBudget='${item.id}';_inlineEditId=null;renderBudgetPage();" title="Sil">✕</button>`
+      }</td>
     </tr>`;
     prevCat=item.cat;
   });
 
   rows+=catTotalRow(prevCat,ct);
-
-  // Total row uses month-aware budgets
   const tb=(state.budgetItems||[]).reduce((s,b)=>s+getBudgetForMonth(b,_activeMonth),0);
   const ta=(state.transactions||[]).filter(t=>!t.deletedAt&&t.date.startsWith(_activeMonth)&&t.cat!=='Birikim').reduce((s,t)=>s+(t.amount||0),0);
-  rows+=`<tr class="tr-total"><td colspan="4">TOPLAM — ${fmtMonth(_activeMonth)}</td><td class="text-right text-mono">₺${fmt(tb)}</td><td class="text-right text-mono">₺${fmt(ta)}</td><td class="text-right text-mono" style="color:${ta>tb?'var(--md-error)':'var(--md-success)'};">${ta>0?(ta<tb?'+':'-')+'₺'+fmt(Math.abs(tb-ta)):'—'}</td><td></td><td></td></tr>`;
+  rows+=`<tr class="tr-total"><td colspan="3">TOPLAM — ${fmtMonth(_activeMonth)}</td><td class="text-right text-mono">₺${fmt(tb)}</td><td class="text-right text-mono">₺${fmt(ta)}</td><td class="text-right text-mono" style="color:${ta>tb?'var(--md-error)':'var(--md-success)'};">${ta>0?(ta<tb?'+':'-')+'₺'+fmt(Math.abs(tb-ta)):'—'}</td><td></td></tr>`;
   tbody.innerHTML=rows;
 
-  // If an inline edit was just rendered, focus its input
   if(_inlineEditId!==null){
     const inp=document.getElementById('inline-amount-input');
     if(inp){inp.focus();inp.select();}
@@ -2442,29 +1844,75 @@ function renderBudgetPage(){
 function catTotalRow(cat,ct){
   const d=ct.b-ct.a;
   return `<tr style="background:var(--md-surface-container);">
-    <td colspan="4" style="font-size:12px;font-weight:500;color:var(--md-on-surface-variant);">Toplam: ${esc(cat)}</td>
+    <td colspan="3" style="font-size:12px;font-weight:500;color:var(--md-on-surface-variant);">Toplam: ${esc(cat)}</td>
     <td class="text-right text-mono fw500">₺${fmt(ct.b)}</td>
     <td class="text-right text-mono fw500" style="color:${ct.a>ct.b?'var(--md-error)':ct.a>0?'var(--md-success)':'inherit'};">${ct.a>0?'₺'+fmt(ct.a):'—'}</td>
     <td class="text-right text-mono fw500" style="color:${d<0?'var(--md-error)':'var(--md-success)'};">${ct.a>0?(d<0?'-':'+')+'₺'+fmt(Math.abs(d)):'—'}</td>
-    <td></td><td></td>
+    <td></td>
   </tr>`;
 }
 
 function confirmDeleteBudget(id){
   state.budgetItems=state.budgetItems.filter(b=>b.id!=id);
-  _inlineEditId=null;
+  _pendingDeleteBudget=null; _inlineEditId=null;
   saveState();markDirty('dashboard','budget');renderBudgetPage();renderNavFooter();
   showSnack('Kalem silindi');
 }
 
+function toggleBudgetFixed(id){
+  const item=state.budgetItems.find(b=>b.id==id);if(!item)return;
+  item.type=item.type==='fixed'?'variable':'fixed';
+  markCustomized();saveState();markDirty('dashboard','budget','projection');
+  renderBudgetPage();
+}
+
+function saveBudgetField(id,field,value){
+  const item=state.budgetItems.find(b=>b.id==id);if(!item)return;
+  if(item[field]===value)return;
+  item[field]=value;
+  markCustomized();saveState();markDirty('dashboard','budget','projection');
+  if(field==='cat')renderBudgetPage(); // kategori değişirse yeniden grupla
+}
+
+// ── Bütçe satırı sürükle-bırak ──
+function budgetDragStart(e,id){
+  _dragBudgetId=id;
+  e.dataTransfer.effectAllowed='move';
+  e.currentTarget.style.opacity='.35';
+}
+function budgetDragOver(e,id){
+  e.preventDefault();
+  e.dataTransfer.dropEffect='move';
+  if(id===_dragBudgetId)return;
+  document.querySelectorAll('#budget-tbody tr[data-id]').forEach(el=>{
+    el.style.outline=el.dataset.id==id?'2px solid var(--md-primary)':'';
+  });
+}
+function budgetDragLeave(e){
+  e.currentTarget.style.outline='';
+}
+function budgetDrop(e,toId){
+  e.preventDefault();
+  if(!_dragBudgetId||_dragBudgetId===toId)return;
+  const fromIdx=state.budgetItems.findIndex(b=>b.id==_dragBudgetId);
+  const toIdx=state.budgetItems.findIndex(b=>b.id==toId);
+  if(fromIdx===-1||toIdx===-1)return;
+  const[moved]=state.budgetItems.splice(fromIdx,1);
+  state.budgetItems.splice(toIdx,0,moved);
+  markCustomized();saveState();renderBudgetPage();
+}
+function budgetDragEnd(e){
+  _dragBudgetId=null;
+  document.querySelectorAll('#budget-tbody tr[data-id]').forEach(el=>{
+    el.style.opacity='';el.style.outline='';
+  });
+}
+
 // ── Inline edit (budget amount, month-specific) ──────────
 function startInlineEdit(id){
-  if(!hasPremiumCloud()){
-    openUpgradeDialog('Ay bazlı bütçe geçmişi (bu ay ve sonrası için tutar) Pro / Lifetime ile tam açılır.');
-    return;
-  }
   if(_inlineEditId==id) return;  // already editing this row
   _inlineEditId = id;
+  _pendingDeleteBudget = null;
   renderBudgetPage();  // re-render to show input
 }
 
@@ -2478,6 +1926,7 @@ function saveInlineEdit(id){
   const oldVal = getBudgetForMonth(item, _activeMonth);
   setBudgetForMonth(item, _activeMonth, newVal);
   _inlineEditId = null;
+  markCustomized();
   saveState();
   markDirty('dashboard','budget');
   renderBudgetPage();
@@ -2499,9 +1948,8 @@ function openAddBudgetModal(){
   document.getElementById('bm-dialog-title').textContent='Bütçe Kalemi Ekle';
   document.getElementById('bm-cat').innerHTML=(state.categories||[]).map(c=>`<option>${esc(c)}</option>`).join('');
   document.getElementById('bm-person').innerHTML=state.persons.map(p=>`<option>${esc(p.name)}</option>`).join('');
-  document.getElementById('bm-amount').value='';
+  document.getElementById('bm-subcat').value='';document.getElementById('bm-amount').value='';
   document.getElementById('bm-duplicate-warn').style.display='none';
-  document.getElementById('bm-subcat-new').style.display='none';
   setBmType('variable');updateBmChips();
   openDialog('budget-dialog');
 }
@@ -2511,7 +1959,7 @@ function openEditBudgetModal(id){
   document.getElementById('bm-dialog-title').textContent='Kalem Düzenle';
   document.getElementById('bm-cat').innerHTML=(state.categories||[]).map(c=>`<option ${c===item.cat?'selected':''}>${esc(c)}</option>`).join('');
   document.getElementById('bm-person').innerHTML=state.persons.map(p=>`<option ${p.name===item.person?'selected':''}>${esc(p.name)}</option>`).join('');
-  document.getElementById('bm-subcat-new').style.display='none';
+  document.getElementById('bm-subcat').value=item.subcat||'';
   // Amount field: show current month value as read-only hint; editing is done inline
   const amountGroup = document.getElementById('bm-amount-group');
   if(amountGroup) amountGroup.innerHTML=`
@@ -2522,8 +1970,7 @@ function openEditBudgetModal(id){
     </div>
     <div class="field-helper mt8">Tutarı değiştirmek için tablodan ilgili satıra tıklayın.</div>`;
   document.getElementById('bm-duplicate-warn').style.display='none';
-  setBmType(_bmType);
-  updateBmChips(item.subcat||'');
+  setBmType(_bmType);updateBmChips();
   openDialog('budget-dialog');
 }
 function setBmType(t){
@@ -2533,61 +1980,17 @@ function setBmType(t){
   if(vb)vb.className='type-seg-btn'+(t==='variable'?' active-variable':'');
   if(hint)hint.textContent=t==='fixed'?'🔒 Sabit: Kira, aidat gibi her ay aynı tutar.':'↕ Değişken: Market, eğlence gibi esnek gider.';
 }
-function getSubcatsForCat(cat){
-  const predefined=SUB[cat]||[];
-  const custom=((state.customSubcats||{})[cat])||[];
-  return [...new Set([...predefined,...custom])].sort();
-}
-
-function populateSubcatSelect(selectId,cat,currentVal){
-  const sel=document.getElementById(selectId);
-  if(!sel)return;
-  const opts=getSubcatsForCat(cat);
-  sel.innerHTML=opts.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('')
-    +`<option value="__new">+ Yeni alt kategori ekle...</option>`;
-  // Restore existing value only if it belongs to the new category's options
-  if(currentVal && opts.includes(currentVal)) sel.value=currentVal;
-  else sel.selectedIndex=0; // always reset to first on category change
-}
-
-function handleSubcatSelect(prefix){
-  const sel=document.getElementById(`${prefix}-subcat`);
-  const wrap=document.getElementById(`${prefix}-subcat-new`);
-  if(!sel||!wrap)return;
-  wrap.style.display=sel.value==='__new'?'block':'none';
-  if(sel.value==='__new'){
-    setTimeout(()=>document.getElementById(`${prefix}-subcat-new-input`)?.focus(),50);
-  }
-}
-
-function getSubcatValue(prefix){
-  const sel=document.getElementById(`${prefix}-subcat`);
-  if(sel&&sel.value==='__new'){
-    const inp=document.getElementById(`${prefix}-subcat-new-input`);
-    const val=inp?.value?.trim()||'';
-    if(val){
-      const cat=document.getElementById(`${prefix}-cat`)?.value||'';
-      if(!state.customSubcats)state.customSubcats={};
-      if(!state.customSubcats[cat])state.customSubcats[cat]=[];
-      if(!state.customSubcats[cat].includes(val))state.customSubcats[cat].push(val);
-    }
-    return val;
-  }
-  return sel?.value||'';
-}
-
-function updateBmChips(keepVal){
+function updateBmChips(){
   const cat=document.getElementById('bm-cat')?.value;
-  if(!cat)return;
-  // keepVal only passed when restoring existing item; category change always resets
-  populateSubcatSelect('bm-subcat',cat,keepVal||'');
-  const wrap=document.getElementById('bm-subcat-new');
-  if(wrap)wrap.style.display='none';
+  const el=document.getElementById('bm-subcat-chips'),inp=document.getElementById('bm-subcat');
+  if(!el||!cat)return;
+  const cur=inp?.value||'';
+  el.innerHTML=(getSubcats(cat)).map(p=>`<span class="chip chip-sm chip-input${cur===p?' selected':''}" onclick="selectChip('bm-subcat','${esc(p)}',updateBmChips)">${esc(p)}</span>`).join('');
 }
 function selectChip(id,val,cb){const el=document.getElementById(id);if(el)el.value=val;if(cb)cb();}
 function saveBudgetItem(){
   const cat    = document.getElementById('bm-cat').value;
-  const subcat = getSubcatValue('bm');
+  const subcat = document.getElementById('bm-subcat').value;
   const person = document.getElementById('bm-person').value;
 
   if(_editingBudgetId){
@@ -2598,6 +2001,7 @@ function saveBudgetItem(){
     const idx=state.budgetItems.findIndex(b=>b.id==_editingBudgetId);
     if(idx!==-1) Object.assign(state.budgetItems[idx],{cat,subcat,person,type:_bmType});
     _editingBudgetId=null;
+    markCustomized();
     saveState();closeDialog('budget-dialog');markDirty('dashboard','budget');renderBudgetPage();renderNavFooter();
     showSnack('Kalem güncellendi');
     return;
@@ -2612,8 +2016,9 @@ function saveBudgetItem(){
   state.budgetItems.push({
     id:Date.now(), cat, subcat, person, type:_bmType,
     budget: amount,
-    budgetHistory:[{from:'2000-01', amount}]   // baseline covers all past months
+    budgetHistory:[{from:'2000-01', amount}]
   });
+  markCustomized();
   saveState();closeDialog('budget-dialog');markDirty('dashboard','budget');renderBudgetPage();renderNavFooter();
   showSnack('Kalem eklendi');
 }
@@ -2621,11 +2026,8 @@ function saveBudgetItem(){
 // ═══════════════════════════════════════════════════════
 // TRANSACTIONS
 // ═══════════════════════════════════════════════════════
-function openTxModal(editIdOrType){
-  // editIdOrType can be: undefined, a tx id (string/number), or 'income'/'expense' (type hint from FAB)
-  const typeHint=(editIdOrType==='income'||editIdOrType==='expense')?editIdOrType:null;
-  const editId=typeHint?null:editIdOrType||null;
-  _editingTxId=editId;
+function openTxModal(editId){
+  _editingTxId=editId||null;
   const cats=[...new Set((state.budgetItems||[]).map(b=>b.cat))];
   const catEl=document.getElementById('tx-cat');
   catEl.innerHTML=cats.map(c=>`<option>${esc(c)}</option>`).join('');
@@ -2634,25 +2036,19 @@ function openTxModal(editIdOrType){
     const tx=state.transactions.find(t=>t.id==editId);if(!tx)return;
     document.getElementById('tx-dialog-title').textContent='Harcamayı Düzenle';
     document.getElementById('tx-date').value=tx.date;
-    catEl.value=tx.cat;populateTxSubcat(tx.subcat);
+    catEl.value=tx.cat;populateTxSubcat();
     document.getElementById('tx-subcat').value=tx.subcat||'';
     document.getElementById('tx-person').value=tx.person;
     document.getElementById('tx-payment').value=tx.payment;
     document.getElementById('tx-amount').value=tx.amount;
     document.getElementById('tx-note').value=tx.note||'';
   }else{
-    const label=typeHint==='income'?'Gelir Ekle':'Harcama Ekle';
-    document.getElementById('tx-dialog-title').textContent=label;
+    document.getElementById('tx-dialog-title').textContent='Harcama Ekle';
     const lastDate=[...(state.transactions||[])].filter(t=>!t.deletedAt).sort((a,b)=>b.date.localeCompare(a.date))[0]?.date;
     document.getElementById('tx-date').value=lastDate||new Date().toISOString().split('T')[0];
     document.getElementById('tx-amount').value='';
     document.getElementById('tx-note').value='';
     document.getElementById('tx-subcat').value='';
-    // If income hint: pre-select savings/income category if available
-    if(typeHint==='income'){
-      const incomeCat=cats.find(c=>/gelir|maaş|kazanç/i.test(c));
-      if(incomeCat)catEl.value=incomeCat;
-    }
     populateTxSubcat();
   }
   updateTxSavingsHint();
@@ -2665,13 +2061,15 @@ function updateTxSavingsHint(){
   if(hint)hint.style.display=cat==='Birikim'?'flex':'none';
 }
 
-function populateTxSubcat(keepVal){
-  const cat=document.getElementById('tx-cat')?.value||'';
+function populateTxSubcat(){
+  const cat=document.getElementById('tx-cat').value;
   updateTxSavingsHint();
-  // keepVal only passed when restoring an existing tx; category change always resets to first
-  populateSubcatSelect('tx-subcat',cat,keepVal||'');
-  const wrap=document.getElementById('tx-subcat-new');
-  if(wrap)wrap.style.display='none';
+  const el=document.getElementById('tx-subcat-chips'),inp=document.getElementById('tx-subcat');
+  if(!el)return;
+  const fromItems=(state.budgetItems||[]).filter(b=>b.cat===cat).map(b=>b.subcat).filter(Boolean);
+  const all=[...new Set([...fromItems,...getSubcats(cat)])];
+  const cur=inp?.value||'';
+  el.innerHTML=all.map(s=>`<span class="chip chip-sm chip-input${cur===s?' selected':''}" onclick="selectChip('tx-subcat','${esc(s)}',populateTxSubcat)">${esc(s)}</span>`).join('');
 }
 
 function saveTx(){
@@ -2681,13 +2079,14 @@ function saveTx(){
     id:_editingTxId||Date.now(),
     date:document.getElementById('tx-date').value,
     cat:document.getElementById('tx-cat').value,
-    subcat:getSubcatValue('tx'),
+    subcat:document.getElementById('tx-subcat').value,
     person:document.getElementById('tx-person').value,
     payment:document.getElementById('tx-payment').value,
     amount, note:document.getElementById('tx-note').value,
   };
   if(_editingTxId){const idx=state.transactions.findIndex(t=>t.id==_editingTxId);if(idx!==-1)state.transactions[idx]=tx;_editingTxId=null;}
   else state.transactions.push(tx);
+  markCustomized();
   saveState();closeDialog('tx-dialog');
   markDirty('dashboard','budget','transactions');
   const active=document.querySelector('.page.active')?.id?.replace('page-','');
@@ -2822,7 +2221,24 @@ function renderProjection(){
   const isSafe=minRes>0;
 
   document.getElementById('proj-kpis').innerHTML=`
-    <div class="metric card-tonal primary"><div class="metric-label">Başlangıç havuzu</div><div class="metric-value">₺${fmt(startReserve)}</div><div class="metric-sub">güncel rezerv</div></div>
+    <div class="metric card-tonal primary">
+      <div class="metric-label">Başlangıç havuzu</div>
+      <div class="metric-value" style="display:flex;align-items:center;gap:8px;">
+        <span id="proj-reserve-display">₺${fmt(startReserve)}</span>
+        <button onclick="startProjReserveEdit()" style="background:rgba(255,255,255,.3);border:none;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;color:inherit;font-weight:500;" id="proj-reserve-edit-btn">düzenle</button>
+      </div>
+      <div id="proj-reserve-edit-area" style="display:none;margin-top:8px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <input type="number" id="proj-reserve-input" value="${startReserve}" min="0"
+            style="width:130px;padding:6px 10px;border:2px solid rgba(255,255,255,.6);border-radius:8px;background:rgba(255,255,255,.2);color:inherit;font-size:14px;font-weight:600;outline:none;"
+            onkeydown="if(event.key==='Enter')saveProjReserve();if(event.key==='Escape')cancelProjReserveEdit();">
+          <button onclick="saveProjReserve()" style="background:rgba(255,255,255,.4);border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px;font-weight:600;">✓</button>
+          <button onclick="cancelProjReserveEdit()" style="background:transparent;border:none;cursor:pointer;font-size:16px;opacity:.7;">✕</button>
+        </div>
+        <div style="font-size:11px;opacity:.75;margin-top:4px;">Enter = kaydet · Esc = iptal</div>
+      </div>
+      <div class="metric-sub" id="proj-reserve-sub">güncel rezerv</div>
+    </div>
     <div class="metric card-tonal ${baseDeficit>0?'error':'success'}"><div class="metric-label">Bu ay ${baseDeficit>0?'açık':'fazla'}</div><div class="metric-value">${baseDeficit>0?'-':'+'}₺${fmt(Math.abs(baseDeficit))}</div><div class="metric-sub">${fmtMonth(_activeMonth)}</div></div>
     <div class="metric card-tonal ${minRes>0?'warning':'error'}"><div class="metric-label">En düşük havuz</div><div class="metric-value">₺${fmt(minRes)}</div><div class="metric-sub">${minMonth?.label||'—'}</div></div>
     <div class="metric card-tonal ${isSafe?'success':'error'}"><div class="metric-label">Durum</div><div class="metric-value" style="font-size:20px;">${isSafe?'✓ Güvende':'⚠ Risk'}</div><div class="metric-sub">${isSafe?'18 ay boyunca pozitif':'Havuz tükenebilir'}</div></div>`;
@@ -2877,6 +2293,25 @@ function renderProjection(){
 }
 
 function deleteMilestone(i){state.milestones.splice(i,1);saveState();renderProjection();showSnack('Değişiklik silindi');}
+
+function startProjReserveEdit(){
+  document.getElementById('proj-reserve-display').style.display='none';
+  document.getElementById('proj-reserve-edit-btn').style.display='none';
+  document.getElementById('proj-reserve-edit-area').style.display='block';
+  document.getElementById('proj-reserve-sub').style.display='none';
+  setTimeout(()=>document.getElementById('proj-reserve-input')?.focus(),50);
+}
+function saveProjReserve(){
+  const val=Math.max(0,+document.getElementById('proj-reserve-input').value||0);
+  state.reserve=val;
+  markCustomized();saveState();
+  markDirty('dashboard');
+  renderProjection();
+  showSnack(`Başlangıç havuzu ₺${fmt(val)} olarak güncellendi`);
+}
+function cancelProjReserveEdit(){
+  renderProjection();
+}
 function openMilestoneModal(){
   document.getElementById('ms-desc').value='';document.getElementById('ms-amount').value='';
   document.getElementById('ms-helper').textContent='';
@@ -2891,6 +2326,7 @@ function saveMilestone(){
   const type=document.getElementById('ms-type').value;
   if(!desc||!month){showSnack('Açıklama ve ay zorunlu');return;}
   state.milestones.push({id:Date.now(),desc,month,amount,type});
+  markCustomized();
   saveState();closeDialog('milestone-dialog');renderProjection();
   showSnack('Değişiklik eklendi');
 }
@@ -2900,25 +2336,37 @@ function saveMilestone(){
 // ═══════════════════════════════════════════════════════
 function addExtraIncome(){
   if(!state.extraIncome)state.extraIncome=[];
-  markSettingsDataTouched();
   state.extraIncome.push({id:Date.now(),desc:'',amount:0,frequency:'monthly'});
-  saveState();renderSettings();renderSampleBanner();
+  markCustomized();
+  // Ek gelir panelini aç
+  const panel=document.getElementById('dash-extra-income-panel');
+  if(panel)panel.style.display='block';
+  saveState();markDirty('dashboard','budget');renderIfDirty('budget');
 }
-const dExtraSave=debounce(()=>{markSettingsDataTouched();saveState();markDirty('dashboard','projection');renderNavFooter();renderSampleBanner();},400);
+const dExtraSave=debounce(()=>{markCustomized();saveState();markDirty('dashboard','projection');renderNavFooter();},400);
+
+function toggleDashExtraIncome(){
+  const panel=document.getElementById('dash-extra-income-panel');
+  if(!panel)return;
+  const open=panel.style.display!=='none';
+  panel.style.display=open?'none':'block';
+  const btn=document.getElementById('dash-extra-toggle');
+  if(btn)btn.textContent=open?'+ Ek gelir':'− Ek gelir';
+}
 
 function renderExtraIncome(){
   const el=document.getElementById('extra-income-list');if(!el)return;
   const items=state.extraIncome||[];
-  if(!items.length){el.innerHTML='<p class="text-sm" style="padding:4px 0;">Henüz ek gelir eklenmedi. Kira geliri, ikramiye vb.</p>';return;}
+  if(!items.length){el.innerHTML='<p class="text-sm" style="padding:4px 0;color:var(--md-on-surface-variant);">Henüz ek gelir eklenmedi. Kira geliri, ikramiye vb.</p>';return;}
   el.innerHTML=items.map((e,i)=>`
-    <div style="display:grid;grid-template-columns:1fr 130px 160px auto;gap:8px;align-items:center;margin-bottom:8px;">
+    <div style="display:grid;grid-template-columns:1fr 120px 150px auto;gap:8px;align-items:center;margin-bottom:8px;">
       <input class="field-input" value="${esc(e.desc||'')}" placeholder="Açıklama (Kira geliri, Prim...)" oninput="state.extraIncome[${i}].desc=this.value;dExtraSave();">
       <input type="number" class="field-input" value="${e.amount||''}" min="0" placeholder="Tutar" oninput="state.extraIncome[${i}].amount=Math.max(0,+this.value);dExtraSave();">
       <select class="field-input" onchange="state.extraIncome[${i}].frequency=this.value;dExtraSave();">
         <option value="monthly" ${e.frequency==='monthly'?'selected':''}>Aylık</option>
         <option value="annual" ${e.frequency==='annual'?'selected':''}>Yıllık (÷12)</option>
       </select>
-      <button class="btn-icon" onclick="state.extraIncome.splice(${i},1);markSettingsDataTouched();saveState();renderSettings();markDirty('dashboard');renderIfDirty('dashboard');renderSampleBanner();">✕</button>
+      <button class="btn-icon" onclick="state.extraIncome.splice(${i},1);saveState();markDirty('dashboard','budget','projection');renderIfDirty('budget');">✕</button>
     </div>`).join('');
 }
 
@@ -2926,43 +2374,118 @@ function renderExtraIncome(){
 // SETTINGS
 // ═══════════════════════════════════════════════════════
 function renderSettings(){
-  const planEl=document.getElementById('settings-plan-summary');
-  if(planEl){
-    if(!_sbUser){
-      planEl.textContent='Giriş sonrası planınız burada görünür. Ücretsiz kullanımda veriler yalnızca bu cihazda kalır.';
-    }else if(hasPremiumCloud()){
-      planEl.textContent='Bulut senkron açık: bütçe ve harcamalar hesabınıza bağlı e-posta ile yedeklenir.';
-    }else{
-      planEl.textContent='Ücretsiz plan: tüm veriler bu tarayıcıda (local). Pro ile buluta senkron ve çoklu cihaz.';
-    }
+  // Kişiler — kompakt yatay satır
+  document.getElementById('settings-persons').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:8px;">`+
+    state.persons.map((p,i)=>`
+      <div style="display:flex;align-items:center;gap:6px;background:var(--md-surface-container);border-radius:var(--shape-full);padding:6px 12px 6px 8px;">
+        <div class="person-avatar ${AV_CLASSES[i]}" style="width:28px;height:28px;font-size:11px;">${esc(p.name).slice(0,2).toUpperCase()}</div>
+        <input class="field-input" value="${esc(p.name)}" style="border:none;background:transparent;padding:0;font-size:13px;font-weight:500;width:${Math.max(60,p.name.length*9)}px;outline:none;"
+          onchange="state.persons[${i}].name=this.value;markCustomized();saveState();markDirty('dashboard','budget','transactions');renderNavFooter();"
+          oninput="this.style.width=Math.max(60,this.value.length*9)+'px'">
+        ${i>0?`<button onclick="state.persons.splice(${i},1);markCustomized();saveState();renderSettings();" style="background:none;border:none;cursor:pointer;color:var(--md-on-surface-variant);font-size:14px;padding:0;line-height:1;">×</button>`:''}
+      </div>`).join('')+
+  `</div>`;
+
+  // Kategoriler + Alt Kategoriler (sürükle-bırak sıralama)
+  document.getElementById('settings-cats').innerHTML=state.categories.map((c,ci)=>{
+    const subs=state.subcategories?.[c]||[];
+    const isAdding=_addingSubcatFor===c;
+    return `<div draggable="true"
+      ondragstart="catDragStart(event,${ci})"
+      ondragover="catDragOver(event,${ci})"
+      ondragleave="catDragLeave(event)"
+      ondrop="catDrop(event,${ci})"
+      ondragend="catDragEnd(event)"
+      data-ci="${ci}"
+      style="border-bottom:1px solid var(--md-outline-variant);padding:12px 0;transition:opacity .15s;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+        <span title="Sırayı değiştir" style="cursor:grab;font-size:16px;color:var(--md-on-surface-variant);padding:4px;flex-shrink:0;user-select:none;" onmousedown="this.style.cursor='grabbing'" onmouseup="this.style.cursor='grab'">⠿</span>
+        <span style="font-size:18px;width:24px;text-align:center;flex-shrink:0;">${CAT_EMOJIS[c]||'📦'}</span>
+        <input class="field-input" value="${esc(c)}" style="flex:1;padding:6px 10px;"
+          onchange="renameCategory(${ci},this.value)">
+        <button class="btn-icon" onclick="removeCategory(${ci})" title="Kategoriyi sil">✕</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;padding-left:54px;align-items:center;">
+        ${subs.map((s,si)=>`<span style="display:inline-flex;align-items:center;gap:3px;background:var(--md-surface-container);border-radius:var(--shape-full);padding:3px 10px 3px 12px;font-size:12px;">${esc(s)}<button onclick="removeSubcat('${esc(c)}',${si})" style="background:none;border:none;cursor:pointer;color:var(--md-on-surface-variant);font-size:14px;padding:0 0 0 3px;line-height:1;">×</button></span>`).join('')}
+        ${isAdding
+          ?`<div style="display:flex;align-items:center;gap:4px;"><input id="new-subcat-input" class="field-input" placeholder="Alt kategori adı..." style="width:150px;padding:5px 10px;font-size:12px;" onkeydown="if(event.key==='Enter')addSubcatSave();if(event.key==='Escape')addSubcatCancel();"><button class="btn btn-tonal btn-sm" onclick="addSubcatSave()">Ekle</button><button class="btn btn-text btn-sm" onclick="addSubcatCancel()">İptal</button></div>`
+          :`<button class="btn btn-text btn-sm" style="font-size:12px;padding:2px 8px;" onclick="addSubcatStart('${esc(c)}')">+ Alt Kategori ekle</button>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renameCategory(idx, newName){
+  const old=state.categories[idx];
+  state.categories[idx]=newName;
+  if(state.subcategories&&state.subcategories[old]){
+    state.subcategories[newName]=state.subcategories[old];
+    delete state.subcategories[old];
   }
-  syncPlanBadge();
-  // Update account info
-  const uiEl=document.getElementById('settings-user-info');
-  if(uiEl){
-    if(_sbUser){
-      const name=_sbUser.user_metadata?.full_name||_sbUser.email;
-      uiEl.textContent=`${name} olarak giriş yapıldı.${hasPremiumCloud()?' Bulut yedek aktif.':' (Ücretsiz: bulut kaydı yok.)'}`;
-    } else {
-      uiEl.textContent='Giriş yapılmamış — veriler yalnızca bu tarayıcıda saklanıyor.';
-    }
+  markCustomized();saveState();
+}
+function removeCategory(idx){
+  state.categories.splice(idx,1);
+  markCustomized();saveState();renderSettings();
+}
+
+// ── Kategori sırası sürükle-bırak ──
+function catDragStart(e,idx){
+  _dragCatIdx=idx;
+  e.dataTransfer.effectAllowed='move';
+  e.currentTarget.style.opacity='.4';
+}
+function catDragOver(e,idx){
+  e.preventDefault();
+  e.dataTransfer.dropEffect='move';
+  if(idx===_dragCatIdx)return;
+  // Hedef satırı vurgula
+  document.querySelectorAll('#settings-cats [data-ci]').forEach(el=>{
+    el.style.background=el.dataset.ci==idx?'var(--md-surface-container)':'';
+  });
+}
+function catDragLeave(e){
+  e.currentTarget.style.background='';
+}
+function catDrop(e,toIdx){
+  e.preventDefault();
+  if(_dragCatIdx===null||_dragCatIdx===toIdx)return;
+  // categories dizisini yeniden sırala
+  const cats=[...state.categories];
+  const [moved]=cats.splice(_dragCatIdx,1);
+  cats.splice(toIdx,0,moved);
+  state.categories=cats;
+  markCustomized();saveState();renderSettings();
+}
+function catDragEnd(e){
+  _dragCatIdx=null;
+  document.querySelectorAll('#settings-cats [data-ci]').forEach(el=>{
+    el.style.opacity='';el.style.background='';
+  });
+}
+function addSubcatStart(cat){
+  _addingSubcatFor=cat;
+  renderSettings();
+  setTimeout(()=>document.getElementById('new-subcat-input')?.focus(),50);
+}
+function addSubcatSave(){
+  const inp=document.getElementById('new-subcat-input');
+  const val=(inp?.value||'').trim();
+  if(val){
+    if(!state.subcategories)state.subcategories={};
+    if(!state.subcategories[_addingSubcatFor])state.subcategories[_addingSubcatFor]=[];
+    if(!state.subcategories[_addingSubcatFor].includes(val))
+      state.subcategories[_addingSubcatFor].push(val);
+    markCustomized();saveState();
   }
-  document.getElementById('set-income').value=state.income||'';
-  document.getElementById('set-reserve').value=state.reserve||'';
-  updateReserveHint();
-  document.getElementById('settings-persons').innerHTML=state.persons.map((p,i)=>`
-    <div class="list-tile">
-      <div class="person-avatar ${AV_CLASSES[i]}">${esc(p.name).slice(0,2).toUpperCase()}</div>
-      <div class="list-tile-content"><input class="field-input" value="${esc(p.name)}" onchange="state.persons[${i}].name=this.value;markSettingsDataTouched();saveState();markDirty('dashboard','budget','transactions');renderNavFooter();renderSampleBanner();"></div>
-      ${i>0?`<button class="btn-icon" onclick="state.persons.splice(${i},1);markSettingsDataTouched();saveState();renderSettings();renderSampleBanner();">✕</button>`:''}
-    </div>`).join('');
-  document.getElementById('settings-cats').innerHTML=state.categories.map((c,i)=>`
-    <div class="list-tile">
-      <span style="font-size:20px;width:28px;text-align:center;">${CAT_EMOJIS[c]||'📦'}</span>
-      <div class="list-tile-content"><input class="field-input" value="${esc(c)}" onchange="state.categories[${i}]=this.value;markSettingsDataTouched();saveState();renderSampleBanner();"></div>
-      <button class="btn-icon" onclick="state.categories.splice(${i},1);markSettingsDataTouched();saveState();renderSettings();renderSampleBanner();">✕</button>
-    </div>`).join('');
-  renderExtraIncome();
+  _addingSubcatFor=null;
+  renderSettings();
+}
+function addSubcatCancel(){_addingSubcatFor=null;renderSettings();}
+function removeSubcat(cat,idx){
+  if(!state.subcategories?.[cat])return;
+  state.subcategories[cat].splice(idx,1);
+  markCustomized();saveState();renderSettings();
 }
 
 function updateReserveHint(){
@@ -2970,32 +2493,34 @@ function updateReserveHint(){
   const savings=(state.transactions||[]).filter(t=>!t.deletedAt&&t.cat==='Birikim').reduce((s,t)=>s+(t.amount||0),0);
   el.innerHTML=savings>0?`<span class="field-helper good">Toplam birikimler: +₺${fmt(savings)} — bunu rezerve dahil etmeyi düşünün.</span>`:'';
 }
-function addPersonSetting(){markSettingsDataTouched();state.persons.push({name:`Kişi ${state.persons.length}`,id:`p${state.persons.length}`});saveState();renderSettings();renderSampleBanner();}
-function addCatSetting(){markSettingsDataTouched();state.categories.push('Yeni Kategori');saveState();renderSettings();renderSampleBanner();}
+function addPersonSetting(){state.persons.push({name:`Kişi ${state.persons.length}`,id:`p${state.persons.length}`});markCustomized();saveState();renderSettings();}
+function addCatSetting(){
+  const name='Yeni Kategori';
+  state.categories.unshift(name);
+  if(!state.subcategories)state.subcategories={};
+  state.subcategories[name]=[];
+  markCustomized();saveState();renderSettings();
+  // Yeni eklenen kategorinin input'una focus
+  setTimeout(()=>document.querySelector('#settings-cats input.field-input')?.focus(),60);
+}
 function showResetConfirm(){
   document.getElementById('reset-confirm-area').innerHTML=`
-    <div class="banner error"><span class="banner-icon">⚠️</span><div class="banner-body"><div class="banner-title">Tüm veriler silinecek!</div><div class="banner-msg">Bu işlem geri alınamaz.</div><div class="flex gap8 mt8"><button class="btn btn-danger-text btn-sm" onclick="executeReset()">Evet, sıfırla</button><button class="btn btn-text btn-sm" onclick="renderSettings()">İptal</button></div></div></div>`;
+    <div class="banner error"><span class="banner-icon">⚠️</span><div class="banner-body"><div class="banner-title">Tüm veriler silinecek</div><div class="banner-msg">Bu işlem geri alınamaz. Email adresiniz korunur, tekrar giriş yapmanıza gerek kalmaz.</div><div class="flex gap8 mt8"><button class="btn btn-danger-text btn-sm" onclick="executeReset()">Evet, sil</button><button class="btn btn-text btn-sm" onclick="renderSettings()">İptal</button></div></div></div>`;
 }
-function executeReset(){
-  state={income:0,reserve:0,persons:[],categories:[],budgetItems:[],transactions:[],milestones:[],extraIncome:[],setupDone:false,schemaVersion:SCHEMA_VERSION,dataFlags:{customizedInSetup:false,customizedInSettings:false,bannerDismissed:false}};
-  saveState();location.reload();
-}
-function restartSetupWizard(){
-  state.setupDone=false;
-  ensureDataFlags();
-  state.dataFlags.customizedInSetup=false;
-  repairEmptyOnboardingIfNeeded();
+function logoutUser(){
+  state.email='';
   saveState();
   document.getElementById('main-app').style.display='none';
-  document.getElementById('fab-wrap').style.display='none';
+  document.getElementById('top-bar').style.display='none';
   document.getElementById('bottom-nav').style.display='none';
-  document.getElementById('onboarding').style.display='flex';
-  // Populate inputs with current state values (not sample defaults)
-  const si=document.getElementById('s-income');const sr=document.getElementById('s-reserve');
-  if(si) si.value=state.income;if(sr) sr.value=state.reserve;
-  renderPersonList();renderCategoryList();renderBudgetSetup();renderMilestoneSetup();
-  document.querySelectorAll('.setup-step').forEach(s=>s.classList.remove('active'));
-  document.getElementById('step1')?.classList.add('active');
+  document.getElementById('fab').style.display='none';
+  showEmailScreen();
+}
+
+function executeReset(){
+  const email=state.email; // email'i koru
+  state={email,income:0,reserve:0,persons:[],categories:[],budgetItems:[],transactions:[],milestones:[],extraIncome:[],setupDone:false,schemaVersion:SCHEMA_VERSION};
+  saveState();location.reload();
 }
 
 // ═══════════════════════════════════════════════════════
