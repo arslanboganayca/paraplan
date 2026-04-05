@@ -75,6 +75,18 @@ body{font-family:'Roboto',sans-serif;background:var(--md-surface-dim);color:var(
 .top-bar{height:56px;display:flex;align-items:center;padding:0 16px;position:fixed;top:0;left:0;right:0;z-index:100;background:var(--md-surface-container-low);border-bottom:1px solid var(--md-outline-variant);}
 .top-bar-title{font-family:'Roboto Serif',serif;font-size:20px;font-weight:600;flex:1;color:var(--md-on-surface);}
 .top-avatar-btn{width:36px;height:36px;border-radius:50%;background:var(--md-primary-container);color:var(--md-on-primary-container);border:none;cursor:pointer;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.profile-dropdown{position:fixed;top:60px;right:12px;width:280px;background:var(--md-surface);border:1px solid var(--md-outline-variant);border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.12);z-index:500;display:none;overflow:hidden;}
+.profile-dropdown.open{display:block;}
+.profile-dd-header{background:var(--md-primary-container);padding:20px;display:flex;align-items:center;gap:14px;}
+.profile-dd-avatar{width:48px;height:48px;border-radius:50%;background:var(--md-primary);color:var(--md-on-primary);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;flex-shrink:0;}
+.profile-dd-body{padding:16px;}
+.profile-dd-field{margin-bottom:12px;}
+.profile-dd-label{font-size:10px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--md-on-surface-variant);margin-bottom:4px;}
+.profile-dd-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.profile-dd-divider{height:1px;background:var(--md-outline-variant);margin:8px 0;}
+.profile-dd-link{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;font-size:14px;color:var(--md-on-surface);border:none;background:none;width:100%;text-align:left;}
+.profile-dd-link:hover{background:var(--md-surface-container);}
+.profile-dd-link.danger{color:var(--md-error);}
 
 /* ── BOTTOM NAV ── */
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--md-surface-container-low);border-top:1px solid var(--md-outline-variant);display:none;height:72px;padding-bottom:env(safe-area-inset-bottom,0);}
@@ -331,8 +343,35 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
 <!-- TOP BAR -->
 <header class="top-bar" id="top-bar" style="display:none;">
   <span class="top-bar-title" id="top-bar-title">Genel Bakış</span>
-  <button class="top-avatar-btn" id="top-avatar" onclick="showPage('settings')" title="Ayarlar">?</button>
+  <button class="top-avatar-btn" id="top-avatar" onclick="toggleProfileDropdown()" title="Profil">?</button>
 </header>
+
+<!-- PROFİL DROPDOWN -->
+<div class="profile-dropdown" id="profile-dropdown">
+  <div class="profile-dd-header">
+    <div class="profile-dd-avatar" id="dd-avatar">?</div>
+    <div style="flex:1;min-width:0;">
+      <div id="dd-fullname" style="font-size:15px;font-weight:500;color:var(--md-on-primary-container);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</div>
+      <div id="dd-email" style="font-size:12px;color:var(--md-on-primary-container);opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;"></div>
+    </div>
+  </div>
+  <div class="profile-dd-body">
+    <div class="profile-dd-row">
+      <div class="profile-dd-field">
+        <div class="profile-dd-label">Ad</div>
+        <input type="text" class="field-input" id="dd-name" placeholder="Adınız" style="padding:7px 10px;font-size:13px;" oninput="saveProfileField('name',this.value)">
+      </div>
+      <div class="profile-dd-field">
+        <div class="profile-dd-label">Soyad</div>
+        <input type="text" class="field-input" id="dd-surname" placeholder="Soyadınız" style="padding:7px 10px;font-size:13px;" oninput="saveProfileField('surname',this.value)">
+      </div>
+    </div>
+    <div class="profile-dd-divider"></div>
+    <button class="profile-dd-link" onclick="closeProfileDropdown();showPage('settings');">⚙ Ayarlar</button>
+    <button class="profile-dd-link danger" onclick="closeProfileDropdown();logoutUser();">↩ Çıkış</button>
+  </div>
+</div>
+<div id="profile-dropdown-overlay" onclick="closeProfileDropdown()" style="display:none;position:fixed;inset:0;z-index:499;"></div>
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav" id="bottom-nav">
@@ -666,21 +705,39 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
     <div class="page" id="page-settings">
       <div class="page-header"><div class="page-title">Ayarlar</div></div>
 
-      <!-- Kullanıcı profil kartı -->
-      <div class="card-outlined mb16" id="settings-profile-card">
-        <div style="display:flex;align-items:center;gap:14px;">
-          <div id="settings-avatar" style="width:48px;height:48px;border-radius:50%;background:var(--md-primary-container);color:var(--md-on-primary-container);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;flex-shrink:0;">?</div>
-          <div style="flex:1;min-width:0;">
-            <div id="settings-email-display" style="font-size:14px;font-weight:500;color:var(--md-on-surface);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
-            <div style="display:flex;gap:16px;margin-top:6px;">
-              <div><div style="font-size:10px;color:var(--md-on-surface-variant);">Gelir</div><div style="font-size:13px;font-weight:500;" id="settings-income-display">—</div></div>
-              <div><div style="font-size:10px;color:var(--md-on-surface-variant);">Bütçe</div><div style="font-size:13px;font-weight:500;" id="settings-budget-display">—</div></div>
-              <div><div style="font-size:10px;color:var(--md-on-surface-variant);">Fark</div><div id="settings-deficit-display" style="font-size:13px;font-weight:500;">—</div></div>
-            </div>
+      <!-- Profil Bilgileri -->
+      <div class="card-outlined mb16">
+        <div class="section-title">Profil</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div class="field"><label class="field-label">Ad</label>
+            <input type="text" class="field-input" id="settings-name" placeholder="Adınız" onchange="state.name=this.value;saveState();updateProfileUI();">
           </div>
-          <button class="btn btn-outlined btn-sm" onclick="logoutUser()">Çıkış</button>
+          <div class="field"><label class="field-label">Soyad</label>
+            <input type="text" class="field-input" id="settings-surname" placeholder="Soyadınız" onchange="state.surname=this.value;saveState();updateProfileUI();">
+          </div>
+        </div>
+        <div class="field"><label class="field-label">E-posta</label>
+          <div id="settings-email-display" style="font-size:14px;padding:8px 0;color:var(--md-on-surface-variant);"></div>
         </div>
       </div>
+
+      <!-- AI Veri Aktarımı -->
+      <div class="card-outlined mb16">
+        <div class="flex items-center justify-between mb8">
+          <div class="section-title" style="margin:0;">AI ile Veri Aktarımı</div>
+          <span style="font-size:11px;background:var(--md-tertiary-container);color:var(--md-on-tertiary-container);padding:2px 10px;border-radius:20px;font-weight:500;">YENİ</span>
+        </div>
+        <p class="text-sm mb12" style="color:var(--md-on-surface-variant);">Mevcut Excel, not ya da tabloyu buraya yapıştırın. AI bütçe kalemlerini otomatik tanır ve yapınıza aktarır.</p>
+        <textarea id="ai-import-text" class="field-input" rows="5"
+          placeholder="Örnek: Kira 18000, Market 6500, Elektrik 1200...&#10;Ya da Excel'den kopyalayıp yapıştırın."
+          style="width:100%;resize:vertical;font-family:monospace;font-size:12px;"></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:10px;gap:8px;">
+          <button class="btn btn-text btn-sm" onclick="document.getElementById('ai-import-text').value='';">Temizle</button>
+          <button class="btn btn-tonal btn-sm" id="ai-import-btn" onclick="runAIImport()">Analiz Et &amp; Aktar</button>
+        </div>
+        <div id="ai-import-result" style="margin-top:12px;"></div>
+      </div>
+
       <!-- Kategoriler & Alt Kategoriler — tam genişlik -->
       <div class="card-outlined mb16">
         <div class="flex items-center justify-between mb8">
@@ -698,6 +755,7 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
         </div>
         <div id="settings-persons"></div>
       </div>
+
       <div class="card-outlined" style="border-color:var(--md-error-container);margin-top:8px;">
         <div class="section-title" style="color:var(--md-error);margin-bottom:6px;">Hesabı Sil</div>
         <p class="text-sm mb16">Tüm bütçe kalemleri, harcamalar ve planlı değişiklikler kalıcı olarak silinir. Email adresiniz korunur.</p>
@@ -875,7 +933,7 @@ function getMsEffect(m) {
 // STATE
 // ═══════════════════════════════════════════════════════
 let state = {
-  email:'',
+  email:'', name:'', surname:'',
   income:0, reserve:0,
   persons:[], categories:[], budgetItems:[], transactions:[],
   milestones:[], extraIncome:[], subcategories:{},
@@ -906,6 +964,8 @@ const _dirty = new Set(['dashboard','budget','transactions','projection','settin
 // ═══════════════════════════════════════════════════════
 function migrateState(s) {
   s.email        = s.email        || '';
+  s.name         = s.name         || '';
+  s.surname      = s.surname      || '';
   s.isCustomized = s.isCustomized || false;
   s.extraIncome  = s.extraIncome  || [];
   // Alt kategoriler: SUB objesi'nden initialize et
@@ -1463,20 +1523,51 @@ function renderNavFooter(){
   const income=getTotalIncome();
   const budget=(state.budgetItems||[]).reduce((s,b)=>s+getBudgetForMonth(b,_activeMonth),0);
   const diff=budget-income;
-  // Settings profile card
+  // Settings page email display
   const sed=document.getElementById('settings-email-display');
-  const sav=document.getElementById('settings-avatar');
-  const sid=document.getElementById('settings-income-display');
-  const sbd=document.getElementById('settings-budget-display');
-  const sdd=document.getElementById('settings-deficit-display');
   if(sed)sed.textContent=state.email||'';
-  if(sav)sav.textContent=(state.email||'?')[0].toUpperCase();
-  if(sid)sid.textContent='₺'+fmt(income);
-  if(sbd)sbd.textContent='₺'+fmt(budget);
-  if(sdd){sdd.textContent=(diff>=0?'- ':'+')+'₺'+fmt(Math.abs(diff));sdd.style.color=diff>0?'var(--md-error)':'var(--md-success)';}
-  // top avatar
+  // top avatar initial
   const tav=document.getElementById('top-avatar');
-  if(tav)tav.textContent=(state.email||'?')[0].toUpperCase();
+  const initial=(state.name||state.email||'?')[0].toUpperCase();
+  if(tav)tav.textContent=initial;
+  updateProfileUI();
+}
+
+function updateProfileUI(){
+  const initial=(state.name||state.email||'?')[0].toUpperCase();
+  const fullname=[state.name,state.surname].filter(Boolean).join(' ')||state.email||'';
+  // dropdown
+  const ddAv=document.getElementById('dd-avatar');if(ddAv)ddAv.textContent=initial;
+  const ddFn=document.getElementById('dd-fullname');if(ddFn)ddFn.textContent=fullname||'—';
+  const ddEm=document.getElementById('dd-email');if(ddEm)ddEm.textContent=state.email||'';
+  // top avatar
+  const tav=document.getElementById('top-avatar');if(tav)tav.textContent=initial;
+  // settings fields (don't overwrite active input)
+  const sn=document.getElementById('settings-name');if(sn&&document.activeElement!==sn)sn.value=state.name||'';
+  const ss=document.getElementById('settings-surname');if(ss&&document.activeElement!==ss)ss.value=state.surname||'';
+}
+
+function saveProfileField(field,val){
+  state[field]=val;
+  saveState();
+  updateProfileUI();
+}
+
+function toggleProfileDropdown(){
+  const dd=document.getElementById('profile-dropdown');
+  const ov=document.getElementById('profile-dropdown-overlay');
+  const isOpen=dd.classList.contains('open');
+  if(isOpen){closeProfileDropdown();}
+  else{
+    dd.classList.add('open');
+    ov.style.display='block';
+    updateProfileUI();
+  }
+}
+function closeProfileDropdown(){
+  document.getElementById('profile-dropdown')?.classList.remove('open');
+  const ov=document.getElementById('profile-dropdown-overlay');
+  if(ov)ov.style.display='none';
 }
 
 function renderSampleBanner(){
@@ -2349,9 +2440,108 @@ function renderExtraIncome(){
 }
 
 // ═══════════════════════════════════════════════════════
-// SETTINGS
+// AI VERİ AKTARIMI
 // ═══════════════════════════════════════════════════════
+async function runAIImport(){
+  const text=(document.getElementById('ai-import-text')?.value||'').trim();
+  if(!text){showSnack('Lütfen veri girin');return;}
+  const btn=document.getElementById('ai-import-btn');
+  const result=document.getElementById('ai-import-result');
+  btn.disabled=true;btn.textContent='Analiz ediliyor...';
+  result.innerHTML='<div style="color:var(--md-on-surface-variant);font-size:13px;padding:8px 0;">AI verinizi yorumluyor...</div>';
+
+  try{
+    const cats=state.categories.join(', ');
+    const prompt=`Kullanıcı aşağıdaki ham bütçe verisini paylaştı. Bu veriyi analiz et ve her satır/kalemi aşağıdaki JSON formatında çıkar.
+
+Mevcut kategoriler: ${cats}
+
+Kurallar:
+- Her kalem için: cat (mevcut kategorilerden en uygun), subcat (alt kategori adı), budget (aylık tutar, sayı), type (fixed veya variable)
+- Eğer kategori listede yoksa en yakın olanı kullan
+- Yıllık tutarları 12'ye böl
+- Sadece JSON array döndür, başka hiçbir şey yazma
+
+Ham veri:
+${text}
+
+Yanıt formatı (SADECE JSON):
+[{"cat":"Konut","subcat":"Kira","budget":18000,"type":"fixed"},...]`;
+
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const data=await resp.json();
+    const raw=data.content?.map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
+    const items=JSON.parse(raw);
+
+    if(!Array.isArray(items)||!items.length)throw new Error('Hiç kalem bulunamadı');
+
+    // Preview göster
+    result.innerHTML=`
+      <div style="font-size:13px;font-weight:500;margin-bottom:8px;color:var(--md-on-surface);">${items.length} kalem bulundu — onaylayın:</div>
+      <div style="background:var(--md-surface-container);border-radius:8px;overflow:hidden;margin-bottom:12px;">
+        <table style="width:100%;font-size:12px;border-collapse:collapse;">
+          <thead><tr style="background:var(--md-surface-container-high);">
+            <th style="padding:8px 10px;text-align:left;font-weight:500;">Kategori</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:500;">Alt Kategori</th>
+            <th style="padding:8px 10px;text-align:right;font-weight:500;">Bütçe</th>
+            <th style="padding:8px 10px;text-align:center;font-weight:500;">Sabit</th>
+          </tr></thead>
+          <tbody>${items.map((it,i)=>`<tr style="${i%2===0?'':'background:var(--md-surface-container-low);'}">
+            <td style="padding:7px 10px;">${esc(it.cat||'')}</td>
+            <td style="padding:7px 10px;color:var(--md-on-surface-variant);">${esc(it.subcat||'')}</td>
+            <td style="padding:7px 10px;text-align:right;font-family:monospace;">₺${fmt(it.budget||0)}</td>
+            <td style="padding:7px 10px;text-align:center;">${it.type==='fixed'?'✓':''}</td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn btn-text btn-sm" onclick="document.getElementById('ai-import-result').innerHTML='';">İptal</button>
+        <button class="btn btn-filled btn-sm" onclick="applyAIImport(${JSON.stringify(JSON.stringify(items))})">Bütçeye Aktar</button>
+      </div>`;
+  }catch(e){
+    result.innerHTML=`<div style="color:var(--md-error);font-size:13px;padding:8px;background:var(--md-error-container);border-radius:8px;">Hata: ${esc(e.message||'Analiz başarısız')}. Farklı bir format deneyin.</div>`;
+  }finally{
+    btn.disabled=false;btn.textContent='Analiz Et & Aktar';
+  }
+}
+
+function applyAIImport(jsonStr){
+  try{
+    const items=JSON.parse(jsonStr);
+    let added=0;
+    items.forEach(it=>{
+      if(!it.cat||!it.budget)return;
+      state.budgetItems.push({
+        id:Date.now()+Math.random(),
+        cat:it.cat||state.categories[0]||'Diğer',
+        subcat:it.subcat||'',
+        person:state.persons[0]?.name||'Aile',
+        budget:Math.round(it.budget||0),
+        type:it.type==='fixed'?'fixed':'variable',
+        budgetHistory:[{from:'2000-01',amount:Math.round(it.budget||0)}]
+      });
+      added++;
+    });
+    markCustomized();saveState();
+    markDirty('dashboard','budget','projection');
+    document.getElementById('ai-import-result').innerHTML=`<div style="color:var(--md-success);font-size:13px;padding:8px;background:var(--md-success-container);border-radius:8px;font-weight:500;">${added} kalem bütçeye aktarıldı!</div>`;
+    document.getElementById('ai-import-text').value='';
+    showSnack(added+' kalem bütçeye eklendi');
+  }catch(e){showSnack('Aktarım hatası: '+e.message);}
+}
 function renderSettings(){
+  // Profil alanları
+  const sn=document.getElementById('settings-name');if(sn&&document.activeElement!==sn)sn.value=state.name||'';
+  const ss=document.getElementById('settings-surname');if(ss&&document.activeElement!==ss)ss.value=state.surname||'';
+  const sed=document.getElementById('settings-email-display');if(sed)sed.textContent=state.email||'';
   // Kişiler — kompakt yatay satır
   document.getElementById('settings-persons').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:8px;">`+
     state.persons.map((p,i)=>`
