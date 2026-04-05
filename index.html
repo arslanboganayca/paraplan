@@ -424,6 +424,12 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .nav-user-email{font-size:11px;color:var(--md-on-surface-variant);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.plan-badge{
+  display:inline-flex;align-items:center;margin-top:6px;padding:2px 8px;border-radius:var(--shape-full);
+  font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+}
+.plan-badge-free{background:var(--md-surface-container-highest);color:var(--md-on-surface-variant);}
+.plan-badge-pro{background:linear-gradient(135deg,#006A6A,#004D4D);color:#fff;}
 </style>
 </head>
 <body>
@@ -663,6 +669,7 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
       <div class="nav-user-info">
         <div class="nav-user-name" id="nav-user-name"></div>
         <div class="nav-user-email" id="nav-user-email"></div>
+        <span id="nav-plan-badge" class="plan-badge plan-badge-free" style="display:none;">Ücretsiz</span>
       </div>
       <button class="btn-icon" title="Çıkış yap" onclick="signOutUser()" style="color:var(--md-on-surface-variant)">⏏</button>
     </div>
@@ -796,6 +803,18 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
         <button class="btn btn-text btn-sm mt8" onclick="addCatSetting()">+ Kategori ekle</button>
       </div>
       <div class="card-outlined mb16">
+        <div class="section-title">Üyelik</div>
+        <p class="text-sm mb8" id="settings-plan-summary">—</p>
+        <div class="flex gap8 flex-wrap mb8">
+          <span id="settings-plan-badge" class="plan-badge plan-badge-free">Ücretsiz</span>
+        </div>
+        <div class="flex gap8 flex-wrap">
+          <button type="button" class="btn btn-filled btn-sm" id="btn-upgrade-pro" onclick="openUpgradeDialog()">Pro'ya geç</button>
+          <button type="button" class="btn btn-outlined btn-sm" id="btn-json-backup" onclick="exportBackupJSON()">JSON tam yedek</button>
+          <button type="button" class="btn btn-text btn-sm" onclick="refreshUserPlan()">Planı yenile</button>
+        </div>
+      </div>
+      <div class="card-outlined mb16">
         <div class="section-title">Hesap</div>
         <p class="text-sm mb16" id="settings-user-info">Giriş yapılmadı.</p>
         <button class="btn btn-outlined btn-sm" onclick="signOutUser()">⏏ Çıkış Yap</button>
@@ -889,6 +908,21 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
   </div>
 </div>
 
+<!-- Pro / upgrade -->
+<div class="dialog-backdrop" id="upgrade-dialog">
+  <div class="dialog" style="max-width:420px;">
+    <div class="dialog-header"><div class="dialog-title">Pro özellikleri</div></div>
+    <div class="dialog-body">
+      <p class="text-sm mb12" id="upgrade-dialog-msg">Bulut senkron, çoklu cihaz, otomatik yedek ve tam bütçe geçmişi Pro ile açılır.</p>
+      <p class="text-sm" style="color:var(--md-on-surface-variant);" id="upgrade-dialog-extra"></p>
+    </div>
+    <div class="dialog-footer">
+      <button class="btn btn-text" onclick="closeDialog('upgrade-dialog')">Kapat</button>
+      <button class="btn btn-filled" onclick="goUpgradeCheckout()">Satın al</button>
+    </div>
+  </div>
+</div>
+
 <!-- Milestone -->
 <div class="dialog-backdrop" id="milestone-dialog">
   <div class="dialog">
@@ -931,6 +965,9 @@ const _sb = supabase.createClient(_SB_URL, _SB_KEY, {
 });
 let _sbUser = null; // currently signed-in user
 const _DEBUG_AUTH = (() => { try { return new URLSearchParams(location.search).has('debug'); } catch { return false; } })();
+/** Gumroad (veya Lemon) ödeme sayfası — kendi ürün linkinizle değiştirin */
+const GUMROAD_CHECKOUT_URL = 'https://gumroad.com/l/YOUR_PRODUCT';
+let _userPlanTier = 'free';
 
 // ═══════════════════════════════════════════════════════
 // CONSTANTS
@@ -1092,6 +1129,82 @@ function normUserEmail(user){
   if(!user?.email) return '';
   return String(user.email).trim().toLowerCase();
 }
+async function fetchUserPlan(user){
+  _userPlanTier = 'free';
+  if(!user) return;
+  const em = normUserEmail(user);
+  if(!em) return;
+  try{
+    const { data, error } = await _sb.from('user_plans').select('tier,valid_until').eq('owner_email', em).maybeSingle();
+    if(error || !data) return;
+    const t = String(data.tier||'').toLowerCase();
+    if(t !== 'pro' && t !== 'lifetime') return;
+    if(data.valid_until){
+      const vu = new Date(data.valid_until);
+      if(!isNaN(vu.getTime()) && vu < new Date()) return;
+    }
+    _userPlanTier = t;
+  }catch(e){ console.warn('[Plan] fetch', e); }
+}
+function hasPremiumCloud(){ return _userPlanTier === 'pro' || _userPlanTier === 'lifetime'; }
+function planLabel(){
+  if(_userPlanTier === 'lifetime') return 'Lifetime';
+  if(_userPlanTier === 'pro') return 'Pro';
+  return 'Ücretsiz';
+}
+function syncPlanBadge(){
+  const nav = document.getElementById('nav-plan-badge');
+  if(nav){
+    if(!_sbUser){ nav.style.display='none'; }
+    else{
+      nav.style.display='inline-flex';
+      nav.textContent = planLabel();
+      nav.className = 'plan-badge ' + (hasPremiumCloud() ? 'plan-badge-pro' : 'plan-badge-free');
+    }
+  }
+  const sb = document.getElementById('settings-plan-badge');
+  if(sb){
+    sb.textContent = planLabel();
+    sb.className = 'plan-badge ' + (hasPremiumCloud() ? 'plan-badge-pro' : 'plan-badge-free');
+  }
+  const jb = document.getElementById('btn-json-backup');
+  if(jb) jb.style.display = hasPremiumCloud() ? 'inline-flex' : 'none';
+  const up = document.getElementById('btn-upgrade-pro');
+  if(up) up.style.display = hasPremiumCloud() ? 'none' : 'inline-flex';
+}
+async function refreshUserPlan(){
+  if(!_sbUser){ showSnack('Önce giriş yapın'); return; }
+  await fetchUserPlan(_sbUser);
+  syncPlanBadge();
+  renderSettings();
+  showSnack(hasPremiumCloud() ? 'Pro aktif' : 'Ücretsiz plan (Supabase’de pro satırı yok veya süresi dolmuş)');
+}
+function openUpgradeDialog(extra){
+  const x = document.getElementById('upgrade-dialog-extra');
+  if(x) x.textContent = extra || '';
+  openDialog('upgrade-dialog');
+}
+function goUpgradeCheckout(){
+  if(!GUMROAD_CHECKOUT_URL || /YOUR_PRODUCT/.test(GUMROAD_CHECKOUT_URL)){
+    showSnack('Ödeme linki: index.html içinde GUMROAD_CHECKOUT_URL değerini doldurun');
+    return;
+  }
+  window.open(GUMROAD_CHECKOUT_URL, '_blank', 'noopener,noreferrer');
+  closeDialog('upgrade-dialog');
+}
+function exportBackupJSON(){
+  if(!hasPremiumCloud()){ openUpgradeDialog('JSON tam yedek ve bulut geçmişi Pro / Lifetime ile sunulur.'); return; }
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `paraplan_yedek_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showSnack('JSON indirildi');
+}
 function resetEmptyState(){
   state={income:0,reserve:0,persons:[],categories:[],budgetItems:[],transactions:[],milestones:[],extraIncome:[],setupDone:false,schemaVersion:SCHEMA_VERSION,dataFlags:{customizedInSetup:false,customizedInSettings:false,bannerDismissed:false}};
 }
@@ -1116,8 +1229,8 @@ let _cloudSaveOk = true;
 async function saveState() {
   // Always save to localStorage as offline cache (aynı hesabın son bulut görüntüsü)
   try { localStorage.setItem('budget-v6', JSON.stringify(state)); } catch(e){}
-  // Save to Supabase if logged in
-  if (_sbUser) {
+  // Bulut: yalnızca Pro / Lifetime (ücretsiz = yalnızca bu cihaz)
+  if (_sbUser && hasPremiumCloud()) {
     const em = normUserEmail(_sbUser);
     try {
       const row = {
@@ -1413,6 +1526,7 @@ function updateNavUser(user){
   }else{
     av.textContent=name.slice(0,2).toUpperCase();
   }
+  syncPlanBadge();
 }
 
 async function signInWithGoogle(){
@@ -1452,9 +1566,11 @@ function clearLoginError(){
 async function signOutUser(){
   _lastLoadedStateForUserId = null;
   _oauthRedirectPending = false;
+  _userPlanTier = 'free';
   await _sb.auth.signOut();
   _sbUser=null;
   try{ localStorage.removeItem('budget-v6'); }catch(e){}
+  syncPlanBadge();
   showLoginScreen();
 }
 
@@ -1475,16 +1591,27 @@ async function applySessionToApp(session){
   const user=session.user;
   const uid=user.id;
   _sbUser=user;
+  await fetchUserPlan(user);
   updateNavUser(user);
   hideLoginScreen();
   if(_lastLoadedStateForUserId===uid){
+    await fetchUserPlan(user);
+    syncPlanBadge();
     if(state.setupDone) showApp();
     else document.getElementById('onboarding').style.display='flex';
     return;
   }
   _lastLoadedStateForUserId=uid;
   try{
-    const loaded=await loadStateFromSupabase(user);
+    let loaded = false;
+    if(hasPremiumCloud()){
+      loaded = await loadStateFromSupabase(user);
+    }else{
+      if(loadStateLocal()){
+        repairEmptyOnboardingIfNeeded();
+        loaded = true;
+      }
+    }
     if(loaded&&state.setupDone) showApp();
     else if(loaded){
       repairEmptyOnboardingIfNeeded();
@@ -1526,7 +1653,9 @@ async function init(){
         if(_lastLoadedStateForUserId!==session.user.id) await applySessionToApp(session);
         else{
           _sbUser=session.user;
+          await fetchUserPlan(session.user);
           updateNavUser(session.user);
+          syncPlanBadge();
           hideLoginScreen();
         }
       }else if(!_sbUser && !_oauthRedirectPending){
@@ -1537,7 +1666,7 @@ async function init(){
     if(event==='TOKEN_REFRESHED'){
       if(session?.user){
         _sbUser=session.user;
-        updateNavUser(session.user);
+        fetchUserPlan(session.user).then(()=>{ updateNavUser(session.user); syncPlanBadge(); });
         hideLoginScreen();
       }
       return;
@@ -1551,6 +1680,8 @@ async function init(){
       _lastLoadedStateForUserId=null;
       _oauthRedirectPending=false;
       _sbUser=null;
+      _userPlanTier='free';
+      syncPlanBadge();
       showLoginScreen();
     }
   });
@@ -2235,6 +2366,10 @@ function confirmDeleteBudget(id){
 
 // ── Inline edit (budget amount, month-specific) ──────────
 function startInlineEdit(id){
+  if(!hasPremiumCloud()){
+    openUpgradeDialog('Ay bazlı bütçe geçmişi (bu ay ve sonrası için tutar) Pro / Lifetime ile tam açılır.');
+    return;
+  }
   if(_inlineEditId==id) return;  // already editing this row
   _inlineEditId = id;
   renderBudgetPage();  // re-render to show input
@@ -2698,12 +2833,23 @@ function renderExtraIncome(){
 // SETTINGS
 // ═══════════════════════════════════════════════════════
 function renderSettings(){
+  const planEl=document.getElementById('settings-plan-summary');
+  if(planEl){
+    if(!_sbUser){
+      planEl.textContent='Giriş sonrası planınız burada görünür. Ücretsiz kullanımda veriler yalnızca bu cihazda kalır.';
+    }else if(hasPremiumCloud()){
+      planEl.textContent='Bulut senkron açık: bütçe ve harcamalar hesabınıza bağlı e-posta ile yedeklenir.';
+    }else{
+      planEl.textContent='Ücretsiz plan: tüm veriler bu tarayıcıda (local). Pro ile buluta senkron ve çoklu cihaz.';
+    }
+  }
+  syncPlanBadge();
   // Update account info
   const uiEl=document.getElementById('settings-user-info');
   if(uiEl){
     if(_sbUser){
       const name=_sbUser.user_metadata?.full_name||_sbUser.email;
-      uiEl.textContent=`${name} olarak giriş yapıldı. Veriler bulutta güvenle saklanıyor.`;
+      uiEl.textContent=`${name} olarak giriş yapıldı.${hasPremiumCloud()?' Bulut yedek aktif.':' (Ücretsiz: bulut kaydı yok.)'}`;
     } else {
       uiEl.textContent='Giriş yapılmamış — veriler yalnızca bu tarayıcıda saklanıyor.';
     }
