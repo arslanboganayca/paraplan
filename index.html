@@ -356,8 +356,8 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
     </div>
   </div>
   <div class="profile-dd-body">
-    <div class="profile-dd-link" onclick="closeProfileDropdown();showPage('settings');" style="cursor:pointer;">⚙ Ayarlar</div>
-    <button class="profile-dd-link danger" onclick="closeProfileDropdown();logoutUser();">↩ Çıkış</button>
+    <button class="profile-dd-link" onclick="closeProfileDropdown();showPage('settings');">⚙ Ayarlar</button>
+    <button class="profile-dd-link" style="color:var(--md-on-surface);" onclick="closeProfileDropdown();logoutUser();">Çıkış Yap</button>
   </div>
 </div>
 <div id="profile-dropdown-overlay" onclick="closeProfileDropdown()" style="display:none;position:fixed;inset:0;z-index:499;"></div>
@@ -379,10 +379,6 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
   <div class="bn-item" data-page="projection" onclick="showPage('projection')">
     <div class="bn-indicator"><span class="bn-ic">↗</span></div>
     <span>Projeksiyon</span>
-  </div>
-  <div class="bn-item" data-page="settings" onclick="showPage('settings')">
-    <div class="bn-indicator"><span class="bn-ic">⚙</span></div>
-    <span>Ayarlar</span>
   </div>
 </nav>
 
@@ -705,8 +701,15 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
             <input type="text" class="field-input" id="settings-surname" placeholder="Soyadınız" onchange="state.surname=this.value;saveState();updateProfileUI();">
           </div>
         </div>
-        <div class="field"><label class="field-label">E-posta</label>
+        <div class="field mb12"><label class="field-label">E-posta</label>
           <div id="settings-email-display" style="font-size:14px;padding:8px 0;color:var(--md-on-surface-variant);"></div>
+        </div>
+        <div class="field">
+          <label class="field-label">Anthropic API Anahtarı <span style="font-weight:400;color:var(--md-on-surface-variant);">(AI aktarım için gerekli)</span></label>
+          <input type="password" class="field-input" id="settings-apikey" placeholder="sk-ant-..." autocomplete="off"
+            oninput="localStorage.setItem('paraplan-apikey',this.value)"
+            style="font-family:monospace;font-size:13px;">
+          <div class="field-helper">API anahtarınız yalnızca bu cihazda saklanır, sunucuya gönderilmez. <a href="https://console.anthropic.com" target="_blank" style="color:var(--md-primary);">console.anthropic.com</a></div>
         </div>
       </div>
 
@@ -2476,7 +2479,14 @@ function resetAIImport(){
 
 async function runAIImport(){
   if(!_aiImportFile){showSnack('Önce dosya seçin');return;}
-  const btn=document.getElementById('ai-import-btn');
+  const apiKey=localStorage.getItem('paraplan-apikey')||'';
+  if(!apiKey||!apiKey.startsWith('sk-')){
+    document.getElementById('ai-import-result').innerHTML=
+      `<div style="background:var(--md-warning-container);color:var(--md-on-warning-container);border-radius:8px;padding:10px 14px;font-size:13px;">
+        API anahtarı gerekli. <button onclick="showPage('settings')" style="background:none;border:none;cursor:pointer;font-weight:500;color:var(--md-on-warning-container);text-decoration:underline;">Ayarlar'dan girin →</button>
+      </div>`;
+    return;
+  }  const btn=document.getElementById('ai-import-btn');
   const result=document.getElementById('ai-import-result');
   btn.disabled=true; btn.textContent='Analiz ediliyor...';
   result.innerHTML='<div style="color:var(--md-on-surface-variant);font-size:13px;padding:10px 0;">📡 AI dosyanızı okuyup yorumluyor...</div>';
@@ -2539,7 +2549,12 @@ Yıllık tutarları 12'ye böl, aylık olarak göster.`;
 
     const resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,system:systemPrompt,messages})
     });
     const data=await resp.json();
@@ -2603,19 +2618,25 @@ function fileToText(file){
   });
 }
 async function excelToCSV(file){
-  // SheetJS CDN üzerinden yükle
-  if(!window.XLSX){
-    await new Promise((res,rej)=>{
-      const s=document.createElement('script');
-      s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-      s.onload=res; s.onerror=rej;
-      document.head.appendChild(s);
-    });
+  try{
+    if(!window.XLSX){
+      await new Promise((res,rej)=>{
+        const s=document.createElement('script');
+        s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        s.onload=res;
+        s.onerror=()=>rej(new Error('SheetJS yüklenemedi'));
+        document.head.appendChild(s);
+      });
+    }
+    const buf=await file.arrayBuffer();
+    const wb=window.XLSX.read(buf,{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    return window.XLSX.utils.sheet_to_csv(ws);
+  }catch(e){
+    // SheetJS yüklenemezse dosyayı binary text olarak oku, AI yine de anlayabilir
+    console.warn('SheetJS failed, falling back to text read:', e.message);
+    return await fileToText(file);
   }
-  const buf=await file.arrayBuffer();
-  const wb=window.XLSX.read(buf,{type:'array'});
-  const ws=wb.Sheets[wb.SheetNames[0]];
-  return window.XLSX.utils.sheet_to_csv(ws);
 }
 
 function applyAIImport(jsonStr){
@@ -2672,10 +2693,10 @@ function applyAIImport(jsonStr){
   }catch(e){showSnack('Aktarım hatası: '+e.message);}
 }
 function renderSettings(){
-  // Profil alanları
   const sn=document.getElementById('settings-name');if(sn&&document.activeElement!==sn)sn.value=state.name||'';
   const ss=document.getElementById('settings-surname');if(ss&&document.activeElement!==ss)ss.value=state.surname||'';
   const sed=document.getElementById('settings-email-display');if(sed)sed.textContent=state.email||'';
+  const sk=document.getElementById('settings-apikey');if(sk&&document.activeElement!==sk)sk.value=localStorage.getItem('paraplan-apikey')||'';
   // Kişiler — kompakt yatay satır
   document.getElementById('settings-persons').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:8px;">`+
     state.persons.map((p,i)=>`
