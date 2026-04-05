@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Aile Bütçe Planlayıcısı</title>
+<title>Paraplan — Aile Bütçe Planlayıcısı</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Serif:wght@400;600&display=swap" rel="stylesheet">
@@ -376,36 +376,67 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
   .bnav-lbl{display:none;}
   .bnav-pill{width:56px;height:32px;}
 }
-/* ── LOGIN SCREEN ── */
+/* ── LOGIN SCREEN (Paraplan klasik) ── */
 #login-screen{
   display:none;position:fixed;inset:0;z-index:9999;
-  background:var(--md-surface-dim);
-  display:flex;align-items:center;justify-content:center;padding:24px;
+  background:#E8EEED;
+  align-items:center;justify-content:center;padding:24px;
 }
 .login-card{
-  background:var(--md-surface-container-low);
-  border-radius:var(--shape-xl);
-  padding:40px 36px;width:100%;max-width:400px;
-  box-shadow:var(--shadow-3);text-align:center;
+  background:#fff;
+  border-radius:24px;
+  padding:40px 32px 32px;width:100%;max-width:420px;
+  box-shadow:0 8px 32px rgba(0,50,50,.08),0 2px 8px rgba(0,0,0,.04);
+  text-align:center;
 }
-.login-logo{font-size:48px;margin-bottom:12px;}
+.login-logo-wrap{
+  width:72px;height:72px;margin:0 auto 20px;border-radius:50%;
+  background:var(--md-primary-container);
+  display:flex;align-items:center;justify-content:center;
+  font-size:36px;line-height:1;
+}
 .login-title{font-family:'Roboto Serif',serif;font-size:26px;font-weight:600;
-  color:var(--md-on-surface);margin:0 0 8px;}
-.login-sub{font-size:14px;color:var(--md-on-surface-variant);margin:0 0 32px;}
+  color:#004D4D;margin:0 0 12px;line-height:1.25;}
+.login-disclaimer{
+  font-size:14px;color:#3F4948;line-height:1.5;margin:0 0 28px;text-align:center;
+}
 .btn-google{
   display:flex;align-items:center;justify-content:center;gap:10px;
-  width:100%;padding:14px 20px;border-radius:var(--shape-full);
-  border:1.5px solid var(--md-outline-variant);background:var(--md-surface);
-  font-size:15px;font-weight:500;color:var(--md-on-surface);cursor:pointer;
-  transition:background .15s,box-shadow .15s;margin-bottom:16px;
+  width:100%;padding:14px 20px;border-radius:14px;
+  border:1.5px solid #BEC9C7;background:#fff;
+  font-size:15px;font-weight:500;color:#191C1C;cursor:pointer;
+  transition:background .15s,box-shadow .15s;margin-bottom:8px;
 }
-.btn-google:hover{background:var(--md-surface-container);box-shadow:var(--shadow-1);}
+.btn-google:hover{background:#F4FAFA;box-shadow:var(--shadow-1);}
 .btn-google svg{flex-shrink:0;}
-.login-divider{display:flex;align-items:center;gap:12px;margin:20px 0;
-  color:var(--md-on-surface-variant);font-size:12px;}
+.login-divider{display:flex;align-items:center;gap:12px;margin:22px 0 20px;
+  color:#5F6368;font-size:13px;}
 .login-divider::before,.login-divider::after{content:'';flex:1;
-  height:1px;background:var(--md-outline-variant);}
-.login-email-form{display:flex;flex-direction:column;gap:10px;text-align:left;}
+  height:1px;background:#BEC9C7;}
+.login-email-form{display:flex;flex-direction:column;gap:12px;text-align:left;}
+.login-field-label{font-size:12px;font-weight:500;color:#004D4D;margin-bottom:4px;}
+.login-email-input{
+  width:100%;padding:14px 16px;border-radius:12px;border:2px solid #006A6A;
+  font-size:15px;font-family:inherit;background:#fff;
+}
+.login-email-input::placeholder{color:#6F7978;}
+.login-email-input:focus{outline:none;box-shadow:0 0 0 3px rgba(0,106,106,.2);}
+.btn-email-continue{
+  width:100%;padding:14px 20px;border-radius:14px;border:none;cursor:pointer;
+  background:var(--md-primary-container);color:#002020;
+  font-size:16px;font-weight:700;font-family:'Roboto',sans-serif;
+  margin-top:4px;transition:filter .15s;
+}
+.btn-email-continue:hover{filter:brightness(.97);}
+.login-footer-note{
+  font-size:12px;color:#5F6368;line-height:1.45;margin-top:24px;text-align:center;
+}
+.login-advanced-toggle{
+  background:none;border:none;color:#006A6A;font-size:13px;font-weight:500;
+  cursor:pointer;padding:8px 0;margin-top:4px;text-align:center;width:100%;
+}
+.login-password-block{display:none;margin-top:8px;padding-top:12px;border-top:1px solid var(--md-outline-variant);}
+.login-password-block.open{display:block;}
 .login-error{background:var(--md-error-container);color:var(--md-on-error-container);
   padding:10px 14px;border-radius:var(--shape-sm);font-size:13px;}
 .login-switch{font-size:13px;color:var(--md-on-surface-variant);margin-top:8px;text-align:center;}
@@ -438,26 +469,34 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
 <div id="login-screen">
   <div class="login-card">
     <div id="login-busy-panel" style="display:none;text-align:center;padding:8px 0 24px;">
-      <div class="login-logo">💰</div>
-      <p class="login-sub" style="margin-top:16px;font-weight:500;">Google ile bağlanılıyor…</p>
-      <p style="font-size:13px;color:var(--md-on-surface-variant);margin-top:8px;">Oturum kuruluyor, lütfen bekleyin.</p>
+      <div class="login-logo-wrap">💰</div>
+      <p class="login-disclaimer" style="margin-top:16px;font-weight:500;">Google ile bağlanılıyor…</p>
+      <p style="font-size:13px;color:#5F6368;margin-top:8px;">Oturum kuruluyor, lütfen bekleyin.</p>
     </div>
     <div id="login-interactive">
-    <div class="login-logo">💰</div>
-    <h1 class="login-title">Aile Bütçe<br>Planlayıcısı</h1>
-    <p class="login-sub">Finansal hedeflerinizi takip edin</p>
-    <button class="btn-google" onclick="signInWithGoogle()">
+    <div class="login-logo-wrap">💰</div>
+    <h1 class="login-title">Paraplan'a Hoş Geldiniz</h1>
+    <p class="login-disclaimer">Verileriniz öncelikle bu cihazda saklanır. Pro üyelikte buluta da yedeklenir.</p>
+    <button type="button" class="btn-google" onclick="signInWithGoogle()">
       <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.859-3.048.859-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.706c-.18-.54-.282-1.117-.282-1.706s.102-1.166.282-1.706V4.962H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.038l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.962L3.964 7.294C4.672 5.167 6.656 3.58 9 3.58z"/></svg>
       Google ile Giriş Yap
     </button>
-    <div class="login-divider"><span>veya e-posta ile</span></div>
+    <div class="login-divider"><span>veya email ile devam et</span></div>
     <div class="login-email-form">
-      <input type="email" id="login-email" class="field-input" placeholder="E-posta adresi">
-      <input type="password" id="login-password" class="field-input" placeholder="Şifre (min. 6 karakter)">
+      <div>
+        <div class="login-field-label">Email adresi</div>
+        <input type="email" id="login-email" class="login-email-input" placeholder="ornek@email.com" autocomplete="email">
+      </div>
       <div id="login-error" class="login-error" style="display:none;"></div>
-      <button class="btn btn-filled w100" onclick="signInWithEmail()">Giriş Yap</button>
-      <div class="login-switch">Hesabın yok mu? <button onclick="signUpWithEmail()">Kayıt ol</button></div>
+      <button type="button" class="btn-email-continue" onclick="signInWithEmailMagicLink()">Devam Et →</button>
+      <button type="button" class="login-advanced-toggle" onclick="toggleLoginPasswordBlock()">Şifre ile giriş veya kayıt</button>
+      <div id="login-password-block" class="login-password-block">
+        <input type="password" id="login-password" class="field-input" placeholder="Şifre (min. 6 karakter)" autocomplete="current-password">
+        <button type="button" class="btn btn-filled w100 mt8" onclick="signInWithEmail()">Giriş Yap</button>
+        <div class="login-switch">Hesabın yok mu? <button type="button" onclick="signUpWithEmail()">Kayıt ol</button></div>
+      </div>
     </div>
+    <p class="login-footer-note">Bu uygulama verilerinizi bu tarayıcıda saklar. Ücretsiz planda farklı bir cihazda açarsanız aynı veri görünmeyebilir; Pro ile eşleşir.</p>
     </div>
   </div>
 </div>
@@ -649,7 +688,7 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
     <div class="nav-header">
       <div class="nav-header-icon">💰</div>
       <div class="nav-header-text">
-        <div class="app-name">Aile Bütçe Planlayıcısı</div>
+        <div class="app-name">Paraplan</div>
         <div class="app-sub" id="sb-month"></div>
       </div>
     </div>
@@ -961,7 +1000,12 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
 const _SB_URL = 'https://lnjbruvhnahqvbtftuxw.supabase.co';
 const _SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxuamJydXZobmFocXZidGZ0dXh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNDUyODQsImV4cCI6MjA5MDgyMTI4NH0.Ec3fduRzf8bhrpvkWqDeyZtOv8XnNgH3b7dov0ndtNE';
 const _sb = supabase.createClient(_SB_URL, _SB_KEY, {
-  auth: { detectSessionInUrl: true, flowType: 'pkce' }
+  auth: {
+    detectSessionInUrl: true,
+    flowType: 'pkce',
+    persistSession: true,
+    storage: typeof localStorage !== 'undefined' ? localStorage : undefined,
+  }
 });
 let _sbUser = null; // currently signed-in user
 const _DEBUG_AUTH = (() => { try { return new URLSearchParams(location.search).has('debug'); } catch { return false; } })();
@@ -1489,6 +1533,20 @@ function setLoginOAuthBusy(on){
   if(busy) busy.style.display=on?'block':'none';
   if(box) box.style.display=on?'none':'block';
 }
+/** OAuth / magic link dönüşü — Supabase URL listesinde birebir tanımlı olmalı */
+function getOAuthRedirectTo(){
+  try{
+    const o = window.location.origin;
+    const p = window.location.pathname || '/';
+    if(!p || p === '/') return o + '/';
+    const trimmed = p.replace(/\/+$/,'') || '/';
+    return trimmed === '/' ? o + '/' : o + trimmed + '/';
+  }catch{ return window.location.origin + '/'; }
+}
+function toggleLoginPasswordBlock(){
+  const b=document.getElementById('login-password-block');
+  if(b) b.classList.toggle('open');
+}
 function showLoginScreen(){
   setLoginOAuthBusy(false);
   document.getElementById('login-screen').style.display='flex';
@@ -1530,17 +1588,52 @@ function updateNavUser(user){
 }
 
 async function signInWithGoogle(){
-  showLoginError('Google\'a yönlendiriliyorsunuz...', true);
-  const { error } = await _sb.auth.signInWithOAuth({
-    provider:'google',
-    options:{ redirectTo: window.location.origin + '/' }
-  });
-  if(error) showLoginError(error.message);
+  clearLoginError();
+  const redirectTo = getOAuthRedirectTo();
+  try{
+    const { data, error } = await _sb.auth.signInWithOAuth({
+      provider:'google',
+      options:{
+        redirectTo,
+        queryParams:{ prompt:'select_account' },
+        skipBrowserRedirect:true,
+      }
+    });
+    if(error){
+      showLoginError(error.message || 'Google girişi başarısız');
+      return;
+    }
+    if(data?.url){
+      window.location.assign(data.url);
+      return;
+    }
+    showLoginError('Google yönlendirmesi başlatılamadı. Supabase Auth URL yapılandırmasını kontrol edin.', false);
+  }catch(e){
+    console.warn('[Auth] Google', e);
+    showLoginError(e?.message || 'Google girişi başarısız');
+  }
+}
+async function signInWithEmailMagicLink(){
+  const email=document.getElementById('login-email').value.trim();
+  if(!email){ showLoginError('Email adresinizi girin'); return; }
+  clearLoginError();
+  showLoginError('Bağlantı gönderiliyor…', true);
+  try{
+    const { error } = await _sb.auth.signInWithOtp({
+      email,
+      options:{ emailRedirectTo:getOAuthRedirectTo() }
+    });
+    if(error){ showLoginError(error.message); return; }
+    showLoginError('Giriş bağlantısı e-postanıza gönderildi — gelen kutusu ve spam klasörünü kontrol edin.', true);
+  }catch(e){
+    showLoginError(e?.message || 'E-posta gönderilemedi');
+  }
 }
 async function signInWithEmail(){
   const email=document.getElementById('login-email').value.trim();
   const pass=document.getElementById('login-password').value;
   if(!email||!pass){ showLoginError('E-posta ve şifre gerekli'); return; }
+  clearLoginError();
   const { error } = await _sb.auth.signInWithPassword({ email, password:pass });
   if(error) showLoginError(error.message);
 }
