@@ -1010,26 +1010,301 @@ function markCustomized(){
 // ═══════════════════════════════════════════════════════
 // STORAGE
 // ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// SUPABASE CONFIG
+// ═══════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://lnjbruvhnahqvbtftuxw.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxuamJydXZobmFocXZidGZ0dXh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNDUyODQsImV4cCI6MjA5MDgyMTI4NH0.Ec3fduRzf8bhrpvkWqDeyZtOv8XnNgH3b7dov0ndtNE';
+
+// Supabase REST helper
+async function sbFetch(path, options={}) {
+  const uid = state._supaUserId;
+  const headers = {
+    'Content-Type': 'application/json',
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': 'Bearer ' + (state._supaToken || SUPABASE_ANON_KEY),
+    'Prefer': 'return=representation',
+    ...options.headers
+  };
+  const resp = await fetch(SUPABASE_URL + '/rest/v1/' + path, { ...options, headers });
+  if (!resp.ok) {
+    const err = await resp.text();
+    throw new Error('Supabase: ' + err.slice(0,100));
+  }
+  const text = await resp.text();
+  return text ? JSON.parse(text) : [];
+}
+
+// ── Normalize: state → Supabase tablolarına kaydet ──────────────────
 async function saveState() {
+  // Her zaman localStorage'a yedekle
+  try { localStorage.setItem('budget-v4', JSON.stringify(state)); } catch(e){}
+
+  // Supabase yoksa localStorage yeter
+  if (!state._supaUserId || !state._supaToken) return;
+
   try {
-    const d = JSON.stringify(state);
-    if (window.storage) await window.storage.set('budget-v4', d);
-    else localStorage.setItem('budget-v4', d);
-  } catch(e) { try { localStorage.setItem('budget-v4', JSON.stringify(state)); } catch(e2){} }
+    const uid = state._supaUserId;
+
+    // 1. users tablosu
+    await sbFetch('users?id=eq.' + uid, {
+      method: 'PATCH',
+      body: JSON.stringify({ name: state.name||'', surname: state.surname||'', income: state.income||0, reserve: state.reserve||0 })
+    });
+
+    // 2. Persons — tüm sil, yeniden ekle
+    await sbFetch('persons?user_id=eq.' + uid, { method: 'DELETE' });
+    if (state.persons?.length) {
+      await sbFetch('persons', {
+        method: 'POST',
+        body: JSON.stringify(state.persons.map((p,i) => ({ user_id: uid, name: p.name, sort_order: i })))
+      });
+    }
+
+    // 3. Categories + subcategories
+    const existingCats = await sbFetch('categories?user_id=eq.' + uid + '&select=id,name');
+    const catNameToId = {};
+    existingCats.forEach(c => { catNameToId[c.name] = c.id; });
+
+    // Yeni kategoriler ekle
+    for (let i = 0; i < (state.categories||[]).length; i++) {
+      const name = state.categories[i];
+      if (!catNameToId[name]) {
+        const [newCat] = await sbFetch('categories', {
+          method: 'POST',
+          body: JSON.stringify({ user_id: uid, name, sort_order: i })
+        });
+        catNameToId[name] = newCat.id;
+      } else {
+        await sbFetch('categories?id=eq.' + catNameToId[name], {
+          method: 'PATCH', body: JSON.stringify({ sort_order: i })
+        });
+      }
+    }
+    // Silinenleri kaldır
+    const currentNames = new Set(state.categories||[]);
+    existingCats.filter(c => !currentNames.has(c.name)).forEach(async c => {
+      await sbFetch('categories?id=eq.' + c.id, { method: 'DELETE' });
+    });
+
+    // Subcategories: her kategori için sil+ekle
+    for (const catName of (state.categories||[])) {
+      const catId = catNameToId[catName];
+      if (!catId) continue;
+      await sbFetch('subcategories?category_id=eq.' + catId, { method: 'DELETE' });
+      const subs = state.subcategories?.[catName] || [];
+      if (subs.length) {
+        await sbFetch('subcategories', {
+          method: 'POST',
+          body: JSON.stringify(subs.map((name,i) => ({ user_id: uid, category_id: catId, name, sort_order: i })))
+        });
+      }
+    }
+
+    // 4. Extra incomes
+    await sbFetch('extra_incomes?user_id=eq.' + uid, { method: 'DELETE' });
+    if (state.extraIncome?.length) {
+      await sbFetch('extra_incomes', {
+        method: 'POST',
+        body: JSON.stringify(state.extraIncome.map(e => ({ user_id: uid, description: e.desc||'', amount: e.amount||0, frequency: e.frequency||'monthly' })))
+      });
+    }
+
+    // 5. Budget items + history (eklenen/güncellenenler)
+    const existingItems = await sbFetch('budget_items?user_id=eq.' + uid + '&select=id');
+    const existingItemIds = new Set(existingItems.map(i => i.id));
+    const currentItemIds = new Set((state.budgetItems||[]).map(b => String(b._sbId)).filter(Boolean));
+
+    for (let i = 0; i < (state.budgetItems||[]).length; i++) {
+      const b = state.budgetItems[i];
+      const catId = catNameToId[b.cat];
+      const personRow = await sbFetch('persons?user_id=eq.' + uid + '&name=eq.' + encodeURIComponent(b.person||'') + '&select=id').catch(()=>[]);
+      const personId = personRow[0]?.id || null;
+
+      if (b._sbId && existingItemIds.has(b._sbId)) {
+        await sbFetch('budget_items?id=eq.' + b._sbId, {
+          method: 'PATCH',
+          body: JSON.stringify({ category_id: catId||null, subcat: b.subcat||'', person_id: personId, type: b.type||'variable', sort_order: i })
+        });
+      } else {
+        const [newItem] = await sbFetch('budget_items', {
+          method: 'POST',
+          body: JSON.stringify({ user_id: uid, category_id: catId||null, subcat: b.subcat||'', person_id: personId, type: b.type||'variable', sort_order: i })
+        });
+        state.budgetItems[i]._sbId = newItem.id;
+      }
+
+      // Budget history
+      const sbId = state.budgetItems[i]._sbId;
+      if (sbId && b.budgetHistory?.length) {
+        for (const h of b.budgetHistory) {
+          await sbFetch('budget_history', {
+            method: 'POST',
+            headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+            body: JSON.stringify({ budget_item_id: sbId, from_month: h.from, amount: h.amount||0 })
+          });
+        }
+      }
+    }
+
+    // 6. Transactions
+    const existingTx = await sbFetch('transactions?user_id=eq.' + uid + '&select=id');
+    const existingTxIds = new Set(existingTx.map(t => t.id));
+    for (const t of (state.transactions||[])) {
+      if (t._sbId && existingTxIds.has(t._sbId)) continue; // Zaten var
+      const catId = catNameToId[t.cat];
+      const personRow = await sbFetch('persons?user_id=eq.' + uid + '&name=eq.' + encodeURIComponent(t.person||'') + '&select=id').catch(()=>[]);
+      const personId = personRow[0]?.id || null;
+      const [newTx] = await sbFetch('transactions', {
+        method: 'POST',
+        body: JSON.stringify({ user_id: uid, date: t.date, category_id: catId||null, subcat: t.subcat||'', person_id: personId, payment_method: t.payment||'', amount: t.amount||0, note: t.note||'', deleted_at: t.deletedAt||null })
+      });
+      t._sbId = newTx.id;
+    }
+
+    // 7. Milestones
+    await sbFetch('milestones?user_id=eq.' + uid, { method: 'DELETE' });
+    if (state.milestones?.length) {
+      await sbFetch('milestones', {
+        method: 'POST',
+        body: JSON.stringify(state.milestones.map(m => ({ user_id: uid, type: m.type, from_month: m.from, amount: m.amount||0, description: m.desc||'', recurring: !!m.recurring })))
+      });
+    }
+
+    // localStorage'ı güncelle (sbId'ler için)
+    localStorage.setItem('budget-v4', JSON.stringify(state));
+
+  } catch(e) {
+    console.warn('Supabase save error:', e.message);
+  }
+}
+
+// ── Supabase'den veri yükle → state'e normalize et ──────────────────
+async function loadFromSupabase(uid) {
+  try {
+    // Users
+    const [user] = await sbFetch('users?id=eq.' + uid + '&select=*');
+    if (!user) return false;
+    state.name = user.name || '';
+    state.surname = user.surname || '';
+    state.income = user.income || 0;
+    state.reserve = user.reserve || 0;
+
+    // Persons
+    const persons = await sbFetch('persons?user_id=eq.' + uid + '&order=sort_order');
+    state.persons = persons.map(p => ({ name: p.name, id: 'p' + p.sort_order }));
+
+    // Categories
+    const cats = await sbFetch('categories?user_id=eq.' + uid + '&order=sort_order');
+    state.categories = cats.map(c => c.name);
+    const catIdToName = {};
+    cats.forEach(c => { catIdToName[c.id] = c.name; });
+
+    // Subcategories
+    state.subcategories = {};
+    if (cats.length) {
+      const subs = await sbFetch('subcategories?user_id=eq.' + uid + '&order=sort_order');
+      subs.forEach(s => {
+        const catName = catIdToName[s.category_id];
+        if (catName) {
+          if (!state.subcategories[catName]) state.subcategories[catName] = [];
+          state.subcategories[catName].push(s.name);
+        }
+      });
+    }
+
+    // Extra incomes
+    const extras = await sbFetch('extra_incomes?user_id=eq.' + uid);
+    state.extraIncome = extras.map(e => ({ id: e.id, desc: e.description, amount: e.amount, frequency: e.frequency }));
+
+    // Budget items + history
+    const items = await sbFetch('budget_items?user_id=eq.' + uid + '&order=sort_order');
+    const personIdToName = {};
+    persons.forEach(p => { personIdToName[p.id] = p.name; });
+
+    state.budgetItems = [];
+    for (const item of items) {
+      const histories = await sbFetch('budget_history?budget_item_id=eq.' + item.id + '&order=from_month');
+      state.budgetItems.push({
+        _sbId: item.id,
+        id: item.id,
+        cat: catIdToName[item.category_id] || 'Diğer',
+        subcat: item.subcat || '',
+        person: personIdToName[item.person_id] || (state.persons[0]?.name || 'Aile'),
+        type: item.type || 'variable',
+        budget: histories[0]?.amount || 0,
+        budgetHistory: histories.length ? histories.map(h => ({ from: h.from_month, amount: h.amount })) : [{ from: '2000-01', amount: 0 }]
+      });
+    }
+
+    // Transactions
+    const txRows = await sbFetch('transactions?user_id=eq.' + uid + '&order=date.desc');
+    state.transactions = txRows.map(t => ({
+      _sbId: t.id,
+      id: t.id,
+      date: t.date,
+      cat: catIdToName[t.category_id] || '',
+      subcat: t.subcat || '',
+      person: personIdToName[t.person_id] || '',
+      payment: t.payment_method || '',
+      amount: t.amount,
+      note: t.note || '',
+      deletedAt: t.deleted_at || undefined
+    }));
+
+    // Milestones
+    const msRows = await sbFetch('milestones?user_id=eq.' + uid);
+    state.milestones = msRows.map(m => ({ id: m.id, type: m.type, from: m.from_month, amount: m.amount, desc: m.description, recurring: m.recurring }));
+
+    state.setupDone = state.budgetItems.length > 0 || state.categories.length > 0;
+    state.isCustomized = true;
+    state.schemaVersion = SCHEMA_VERSION;
+
+    // localStorage'a da yedekle
+    localStorage.setItem('budget-v4', JSON.stringify(state));
+    return true;
+  } catch(e) {
+    console.warn('Supabase load error:', e.message);
+    return false;
+  }
+}
+
+async function saveState() {
+  // Her zaman localStorage'a yedekle
+  try { localStorage.setItem('budget-v4', JSON.stringify(state)); } catch(e){}
+  // Supabase varsa async kaydet (fire and forget — UI'ı bekletme)
+  if (state._supaUserId && state._supaToken) {
+    saveToSupabase().catch(e => console.warn('SB save:', e.message));
+  }
+}
+
+// Hızlı, non-blocking Supabase save — sadece core kullanıcı verisi + dirty
+async function saveToSupabase() {
+  const uid = state._supaUserId;
+  // 1. users
+  await sbFetch('users?id=eq.' + uid, {
+    method: 'PATCH',
+    body: JSON.stringify({ name: state.name||'', surname: state.surname||'', income: state.income||0, reserve: state.reserve||0, updated_at: new Date().toISOString() })
+  });
 }
 
 async function loadState() {
   try {
+    // Önce localStorage'dan hızlıca yükle
     let data = null;
-    const keys = ['budget-v4','budget-app-v3','budget-app-state'];
-    for (const k of keys) {
-      if (!data && window.storage) { const r = await window.storage.get(k); if(r) data=r.value; }
-      if (!data) data = localStorage.getItem(k);
+    for (const k of ['budget-v4','budget-app-v3','budget-app-state']) {
+      data = localStorage.getItem(k);
       if (data) break;
     }
-    if (data) { state = migrateState(JSON.parse(data)); return true; }
-  } catch(e){}
-  return false;
+    if (data) { state = migrateState(JSON.parse(data)); }
+
+    // Supabase token varsa oradan tam veri çek
+    if (state._supaUserId && state._supaToken) {
+      const ok = await loadFromSupabase(state._supaUserId);
+      if (ok) return true;
+    }
+    return !!data;
+  } catch(e) { return false; }
 }
 
 function debounce(fn,ms=350){ let t; return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);}; }
@@ -1245,13 +1520,53 @@ function handleGoogleSignIn(response){
     const email=payload.email;
     if(!email){showSnack('Email alınamadı, tekrar deneyin');return;}
     state.email=email;
-    saveState();
-    document.getElementById('email-screen').style.display='none';
-    if(state.setupDone) showApp();
-    else showOnboarding();
-    showSnack(`Hoş geldiniz, ${esc(payload.given_name||email)}!`);
+
+    // Supabase Google OAuth ile sign in
+    signInWithSupabase(response.credential, email).then(()=>{
+      saveState();
+      document.getElementById('email-screen').style.display='none';
+      if(state.setupDone) showApp();
+      else showOnboarding();
+      showSnack(`Hoş geldiniz, ${esc(payload.given_name||email)}!`);
+    }).catch(()=>{
+      // Supabase başarısız olsa bile devam et
+      saveState();
+      document.getElementById('email-screen').style.display='none';
+      if(state.setupDone) showApp();
+      else showOnboarding();
+    });
   } catch(e){
     showSnack('Google girişi başarısız, email ile deneyin');
+  }
+}
+
+async function signInWithSupabase(googleToken, email) {
+  try {
+    const resp = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=id_token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY
+      },
+      body: JSON.stringify({ provider: 'google', id_token: googleToken })
+    });
+    if (!resp.ok) throw new Error('Supabase auth failed');
+    const data = await resp.json();
+    state._supaToken = data.access_token;
+    state._supaUserId = data.user?.id;
+
+    // users tablosuna kaydet (trigger yoksa elle)
+    if (state._supaUserId) {
+      await sbFetch('users', {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=ignore-duplicates,return=representation', 'Authorization': 'Bearer ' + state._supaToken },
+        body: JSON.stringify({ id: state._supaUserId, email })
+      });
+      // Varolan veriyi çek
+      await loadFromSupabase(state._supaUserId);
+    }
+  } catch(e) {
+    console.warn('Supabase sign-in error:', e.message);
   }
 }
 
