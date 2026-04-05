@@ -356,18 +356,7 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
     </div>
   </div>
   <div class="profile-dd-body">
-    <div class="profile-dd-row">
-      <div class="profile-dd-field">
-        <div class="profile-dd-label">Ad</div>
-        <input type="text" class="field-input" id="dd-name" placeholder="Adınız" style="padding:7px 10px;font-size:13px;" oninput="saveProfileField('name',this.value)">
-      </div>
-      <div class="profile-dd-field">
-        <div class="profile-dd-label">Soyad</div>
-        <input type="text" class="field-input" id="dd-surname" placeholder="Soyadınız" style="padding:7px 10px;font-size:13px;" oninput="saveProfileField('surname',this.value)">
-      </div>
-    </div>
-    <div class="profile-dd-divider"></div>
-    <button class="profile-dd-link" onclick="closeProfileDropdown();showPage('settings');">⚙ Ayarlar</button>
+    <div class="profile-dd-link" onclick="closeProfileDropdown();showPage('settings');" style="cursor:pointer;">⚙ Ayarlar</div>
     <button class="profile-dd-link danger" onclick="closeProfileDropdown();logoutUser();">↩ Çıkış</button>
   </div>
 </div>
@@ -727,14 +716,35 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
           <div class="section-title" style="margin:0;">AI ile Veri Aktarımı</div>
           <span style="font-size:11px;background:var(--md-tertiary-container);color:var(--md-on-tertiary-container);padding:2px 10px;border-radius:20px;font-weight:500;">YENİ</span>
         </div>
-        <p class="text-sm mb12" style="color:var(--md-on-surface-variant);">Mevcut Excel, not ya da tabloyu buraya yapıştırın. AI bütçe kalemlerini otomatik tanır ve yapınıza aktarır.</p>
-        <textarea id="ai-import-text" class="field-input" rows="5"
-          placeholder="Örnek: Kira 18000, Market 6500, Elektrik 1200...&#10;Ya da Excel'den kopyalayıp yapıştırın."
-          style="width:100%;resize:vertical;font-family:monospace;font-size:12px;"></textarea>
-        <div style="display:flex;justify-content:flex-end;margin-top:10px;gap:8px;">
-          <button class="btn btn-text btn-sm" onclick="document.getElementById('ai-import-text').value='';">Temizle</button>
-          <button class="btn btn-tonal btn-sm" id="ai-import-btn" onclick="runAIImport()">Analiz Et &amp; Aktar</button>
+        <p class="text-sm mb12" style="color:var(--md-on-surface-variant);">Excel, CSV, PDF veya ekran görüntüsü yükleyin. AI bütçe kalemlerini ve kategorileri otomatik tanıyıp yapınıza aktarır.</p>
+
+        <!-- Drop zone -->
+        <div id="ai-drop-zone"
+          onclick="document.getElementById('ai-file-input').click()"
+          ondragover="event.preventDefault();this.style.borderColor='var(--md-primary)'"
+          ondragleave="this.style.borderColor='var(--md-outline-variant)'"
+          ondrop="event.preventDefault();this.style.borderColor='var(--md-outline-variant)';handleAIFileDrop(event.dataTransfer.files)"
+          style="border:2px dashed var(--md-outline-variant);border-radius:12px;padding:28px 20px;text-align:center;cursor:pointer;transition:border-color .2s;">
+          <div style="font-size:28px;margin-bottom:8px;">📂</div>
+          <div style="font-size:14px;font-weight:500;color:var(--md-on-surface);margin-bottom:4px;">Dosya seçin veya buraya sürükleyin</div>
+          <div style="font-size:12px;color:var(--md-on-surface-variant);">Excel (.xlsx .xls) · CSV · PDF · PNG/JPG/HEIC</div>
         </div>
+        <input type="file" id="ai-file-input" accept=".xlsx,.xls,.csv,.pdf,.png,.jpg,.jpeg,.heic,.webp" style="display:none;" onchange="handleAIFileSelect(this.files)">
+
+        <div id="ai-file-preview" style="margin-top:10px;display:none;">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--md-surface-container);border-radius:8px;">
+            <span id="ai-file-icon" style="font-size:20px;">📄</span>
+            <div style="flex:1;min-width:0;">
+              <div id="ai-file-name" style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+              <div id="ai-file-size" style="font-size:11px;color:var(--md-on-surface-variant);"></div>
+            </div>
+            <button onclick="resetAIImport()" style="background:none;border:none;cursor:pointer;color:var(--md-on-surface-variant);font-size:18px;">✕</button>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:10px;">
+            <button class="btn btn-filled btn-sm" id="ai-import-btn" onclick="runAIImport()">AI ile Analiz Et</button>
+          </div>
+        </div>
+
         <div id="ai-import-result" style="margin-top:12px;"></div>
       </div>
 
@@ -1542,9 +1552,6 @@ function updateProfileUI(){
   const ddEm=document.getElementById('dd-email');if(ddEm)ddEm.textContent=state.email||'';
   // top avatar
   const tav=document.getElementById('top-avatar');if(tav)tav.textContent=initial;
-  // settings fields (don't overwrite active input)
-  const sn=document.getElementById('settings-name');if(sn&&document.activeElement!==sn)sn.value=state.name||'';
-  const ss=document.getElementById('settings-surname');if(ss&&document.activeElement!==ss)ss.value=state.surname||'';
 }
 
 function saveProfileField(field,val){
@@ -2440,61 +2447,126 @@ function renderExtraIncome(){
 }
 
 // ═══════════════════════════════════════════════════════
-// AI VERİ AKTARIMI
+// AI VERİ AKTARIMI — Dosya tabanlı
 // ═══════════════════════════════════════════════════════
+let _aiImportFile = null;
+
+function handleAIFileDrop(files){ if(files?.[0]) setAIFile(files[0]); }
+function handleAIFileSelect(files){ if(files?.[0]) setAIFile(files[0]); }
+
+function setAIFile(file){
+  _aiImportFile=file;
+  document.getElementById('ai-drop-zone').style.display='none';
+  document.getElementById('ai-file-preview').style.display='block';
+  document.getElementById('ai-import-result').innerHTML='';
+  const ext=file.name.split('.').pop().toLowerCase();
+  const icons={xlsx:'📊',xls:'📊',csv:'📋',pdf:'📄',png:'🖼',jpg:'🖼',jpeg:'🖼',heic:'🖼',webp:'🖼'};
+  document.getElementById('ai-file-icon').textContent=icons[ext]||'📄';
+  document.getElementById('ai-file-name').textContent=file.name;
+  document.getElementById('ai-file-size').textContent=(file.size/1024).toFixed(0)+' KB';
+}
+
+function resetAIImport(){
+  _aiImportFile=null;
+  document.getElementById('ai-drop-zone').style.display='block';
+  document.getElementById('ai-file-preview').style.display='none';
+  document.getElementById('ai-import-result').innerHTML='';
+  document.getElementById('ai-file-input').value='';
+}
+
 async function runAIImport(){
-  const text=(document.getElementById('ai-import-text')?.value||'').trim();
-  if(!text){showSnack('Lütfen veri girin');return;}
+  if(!_aiImportFile){showSnack('Önce dosya seçin');return;}
   const btn=document.getElementById('ai-import-btn');
   const result=document.getElementById('ai-import-result');
-  btn.disabled=true;btn.textContent='Analiz ediliyor...';
-  result.innerHTML='<div style="color:var(--md-on-surface-variant);font-size:13px;padding:8px 0;">AI verinizi yorumluyor...</div>';
+  btn.disabled=true; btn.textContent='Analiz ediliyor...';
+  result.innerHTML='<div style="color:var(--md-on-surface-variant);font-size:13px;padding:10px 0;">📡 AI dosyanızı okuyup yorumluyor...</div>';
 
   try{
+    const ext=_aiImportFile.name.split('.').pop().toLowerCase();
+    const isImage=['png','jpg','jpeg','heic','webp'].includes(ext);
+    const isPDF=ext==='pdf';
+    const isExcel=['xlsx','xls'].includes(ext);
+    const isCSV=ext==='csv';
+
     const cats=state.categories.join(', ');
-    const prompt=`Kullanıcı aşağıdaki ham bütçe verisini paylaştı. Bu veriyi analiz et ve her satır/kalemi aşağıdaki JSON formatında çıkar.
+    const systemPrompt=`Sen bir kişisel finans asistanısın. Kullanıcı bir bütçe belgesi yükledi. 
+Belgedeki TÜM bütçe kalemlerini, harcama kategorilerini ve tutarları analiz et.
 
 Mevcut kategoriler: ${cats}
 
-Kurallar:
-- Her kalem için: cat (mevcut kategorilerden en uygun), subcat (alt kategori adı), budget (aylık tutar, sayı), type (fixed veya variable)
-- Eğer kategori listede yoksa en yakın olanı kullan
-- Yıllık tutarları 12'ye böl
-- Sadece JSON array döndür, başka hiçbir şey yazma
+Görevin:
+1. Belgedeki her kalemi tespit et (kategori, alt kategori, aylık tutar, sabit mi değişken mi)
+2. Yeni kategoriler varsa bunları da listele
+3. SADECE JSON formatında yanıt ver, başka hiçbir şey yazma
 
-Ham veri:
-${text}
+Yanıt formatı:
+{
+  "newCategories": ["Kategori1", "Kategori2"],
+  "items": [
+    {"cat": "Konut", "subcat": "Kira", "budget": 18000, "type": "fixed"},
+    {"cat": "Gıda", "subcat": "Market", "budget": 6500, "type": "variable"}
+  ]
+}
 
-Yanıt formatı (SADECE JSON):
-[{"cat":"Konut","subcat":"Kira","budget":18000,"type":"fixed"},...]`;
+type: "fixed" = sabit gider (her ay aynı), "variable" = değişken gider
+Yıllık tutarları 12'ye böl, aylık olarak göster.`;
+
+    let messages;
+
+    if(isImage){
+      // Görsel → base64 image
+      const b64=await fileToBase64(_aiImportFile);
+      const mimeType=_aiImportFile.type||'image/png';
+      messages=[{role:'user',content:[
+        {type:'image',source:{type:'base64',media_type:mimeType,data:b64}},
+        {type:'text',text:'Bu görseldeki bütçe verilerini analiz et ve JSON formatında çıkar.'}
+      ]}];
+    } else if(isPDF){
+      const b64=await fileToBase64(_aiImportFile);
+      messages=[{role:'user',content:[
+        {type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},
+        {type:'text',text:'Bu PDF dosyasındaki bütçe verilerini analiz et ve JSON formatında çıkar.'}
+      ]}];
+    } else if(isExcel){
+      // Excel → SheetJS ile CSV'ye çevir
+      const csvText=await excelToCSV(_aiImportFile);
+      messages=[{role:'user',content:`Aşağıdaki tablo verisini (Excel'den CSV'ye çevrildi) analiz et:\n\n${csvText}`}];
+    } else {
+      // CSV / TXT
+      const text=await fileToText(_aiImportFile);
+      messages=[{role:'user',content:`Aşağıdaki veriyi analiz et:\n\n${text}`}];
+    }
 
     const resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        messages:[{role:'user',content:prompt}]
-      })
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,system:systemPrompt,messages})
     });
     const data=await resp.json();
-    const raw=data.content?.map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
-    const items=JSON.parse(raw);
+    if(data.error)throw new Error(data.error.message||'API hatası');
 
-    if(!Array.isArray(items)||!items.length)throw new Error('Hiç kalem bulunamadı');
+    const raw=(data.content||[]).map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(raw);
+    const items=parsed.items||[];
+    const newCats=parsed.newCategories||[];
 
-    // Preview göster
+    if(!items.length)throw new Error('Dosyada bütçe kalemi bulunamadı');
+
+    // Preview
     result.innerHTML=`
-      <div style="font-size:13px;font-weight:500;margin-bottom:8px;color:var(--md-on-surface);">${items.length} kalem bulundu — onaylayın:</div>
+      <div style="font-size:13px;font-weight:500;margin-bottom:8px;">${items.length} kalem, ${newCats.length} yeni kategori bulundu:</div>
+      ${newCats.length?`<div style="background:var(--md-tertiary-container);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--md-on-tertiary-container);margin-bottom:10px;">
+        <strong>Yeni kategoriler eklenecek:</strong> ${newCats.map(c=>esc(c)).join(' · ')}
+      </div>`:''}
       <div style="background:var(--md-surface-container);border-radius:8px;overflow:hidden;margin-bottom:12px;">
         <table style="width:100%;font-size:12px;border-collapse:collapse;">
           <thead><tr style="background:var(--md-surface-container-high);">
             <th style="padding:8px 10px;text-align:left;font-weight:500;">Kategori</th>
             <th style="padding:8px 10px;text-align:left;font-weight:500;">Alt Kategori</th>
-            <th style="padding:8px 10px;text-align:right;font-weight:500;">Bütçe</th>
+            <th style="padding:8px 10px;text-align:right;font-weight:500;">Bütçe/ay</th>
             <th style="padding:8px 10px;text-align:center;font-weight:500;">Sabit</th>
           </tr></thead>
-          <tbody>${items.map((it,i)=>`<tr style="${i%2===0?'':'background:var(--md-surface-container-low);'}">
+          <tbody>${items.map((it,i)=>`<tr style="${i%2?'':'background:var(--md-surface-container-low);'}">
             <td style="padding:7px 10px;">${esc(it.cat||'')}</td>
             <td style="padding:7px 10px;color:var(--md-on-surface-variant);">${esc(it.subcat||'')}</td>
             <td style="padding:7px 10px;text-align:right;font-family:monospace;">₺${fmt(it.budget||0)}</td>
@@ -2504,24 +2576,76 @@ Yanıt formatı (SADECE JSON):
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end;">
         <button class="btn btn-text btn-sm" onclick="document.getElementById('ai-import-result').innerHTML='';">İptal</button>
-        <button class="btn btn-filled btn-sm" onclick="applyAIImport(${JSON.stringify(JSON.stringify(items))})">Bütçeye Aktar</button>
+        <button class="btn btn-filled btn-sm" onclick="applyAIImport(${JSON.stringify(JSON.stringify(parsed))})">Bütçeye Uygula</button>
       </div>`;
+
   }catch(e){
-    result.innerHTML=`<div style="color:var(--md-error);font-size:13px;padding:8px;background:var(--md-error-container);border-radius:8px;">Hata: ${esc(e.message||'Analiz başarısız')}. Farklı bir format deneyin.</div>`;
+    result.innerHTML=`<div style="color:var(--md-error);font-size:13px;padding:10px;background:var(--md-error-container);border-radius:8px;">Hata: ${esc(e.message||'Analiz başarısız')}</div>`;
   }finally{
-    btn.disabled=false;btn.textContent='Analiz Et & Aktar';
+    btn.disabled=false; btn.textContent='AI ile Analiz Et';
   }
+}
+
+function fileToBase64(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result.split(',')[1]);
+    r.onerror=()=>rej(new Error('Dosya okunamadı'));
+    r.readAsDataURL(file);
+  });
+}
+function fileToText(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result);
+    r.onerror=()=>rej(new Error('Dosya okunamadı'));
+    r.readAsText(file,'UTF-8');
+  });
+}
+async function excelToCSV(file){
+  // SheetJS CDN üzerinden yükle
+  if(!window.XLSX){
+    await new Promise((res,rej)=>{
+      const s=document.createElement('script');
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload=res; s.onerror=rej;
+      document.head.appendChild(s);
+    });
+  }
+  const buf=await file.arrayBuffer();
+  const wb=window.XLSX.read(buf,{type:'array'});
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  return window.XLSX.utils.sheet_to_csv(ws);
 }
 
 function applyAIImport(jsonStr){
   try{
-    const items=JSON.parse(jsonStr);
+    const parsed=JSON.parse(jsonStr);
+    const items=parsed.items||[];
+    const newCats=parsed.newCategories||[];
+
+    // Yeni kategorileri state'e ekle
+    newCats.forEach(cat=>{
+      if(!state.categories.includes(cat)){
+        state.categories.push(cat);
+        if(!state.subcategories)state.subcategories={};
+        state.subcategories[cat]=[];
+      }
+    });
+
+    // Bütçe kalemlerini ekle
     let added=0;
     items.forEach(it=>{
       if(!it.cat||!it.budget)return;
+      // Kategori yoksa ekle
+      if(!state.categories.includes(it.cat)){
+        state.categories.push(it.cat);
+        if(!state.subcategories)state.subcategories={};
+        state.subcategories[it.cat]=[];
+      }
       state.budgetItems.push({
         id:Date.now()+Math.random(),
-        cat:it.cat||state.categories[0]||'Diğer',
+        cat:it.cat,
         subcat:it.subcat||'',
         person:state.persons[0]?.name||'Aile',
         budget:Math.round(it.budget||0),
@@ -2530,11 +2654,21 @@ function applyAIImport(jsonStr){
       });
       added++;
     });
-    markCustomized();saveState();
-    markDirty('dashboard','budget','projection');
-    document.getElementById('ai-import-result').innerHTML=`<div style="color:var(--md-success);font-size:13px;padding:8px;background:var(--md-success-container);border-radius:8px;font-weight:500;">${added} kalem bütçeye aktarıldı!</div>`;
-    document.getElementById('ai-import-text').value='';
-    showSnack(added+' kalem bütçeye eklendi');
+
+    markCustomized();
+    saveState();
+    markDirty('dashboard','budget','projection','settings');
+
+    document.getElementById('ai-import-result').innerHTML=
+      `<div style="color:var(--md-success);font-size:13px;padding:10px;background:var(--md-success-container);border-radius:8px;font-weight:500;">
+        ${added} kalem${newCats.length?' ve '+newCats.length+' yeni kategori':''} bütçeye eklendi!
+      </div>`;
+    resetAIImport();
+    showSnack(added+' kalem eklendi — tüm sayfalar güncellendi');
+    // Tüm sayfaları yenile
+    renderIfDirty('dashboard');
+    renderIfDirty('budget');
+    renderIfDirty('settings');
   }catch(e){showSnack('Aktarım hatası: '+e.message);}
 }
 function renderSettings(){
