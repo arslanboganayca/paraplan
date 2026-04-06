@@ -2959,11 +2959,11 @@ async function excelToCSV(file){
       });
     }
     const buf=await file.arrayBuffer();
-    const wb=window.XLSX.read(buf,{type:'array'});
+    const data=new Uint8Array(buf);  // ArrayBuffer → Uint8Array
+    const wb=window.XLSX.read(data,{type:'array'});
     const ws=wb.Sheets[wb.SheetNames[0]];
     return window.XLSX.utils.sheet_to_csv(ws);
   }catch(e){
-    // SheetJS yüklenemezse dosyayı binary text olarak oku, AI yine de anlayabilir
     console.warn('SheetJS failed, falling back to text read:', e.message);
     return await fileToText(file);
   }
