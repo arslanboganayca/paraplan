@@ -1304,6 +1304,40 @@ function dSaveSettings(){
 // HELPERS
 // ═══════════════════════════════════════════════════════
 function esc(s){ if(s==null)return''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+/** Sayfa dili: <html lang="…"> — mesajlar buna göre (en/tr karışmasın) */
+function uiLang(){
+  const h=(document.documentElement.getAttribute('lang')||'tr').toLowerCase();
+  return h.startsWith('en')?'en':'tr';
+}
+const AI_UI={
+  tr:{
+    errPrefix:'Hata:',
+    fileProto:'AI analizi için sayfayı bir HTTP sunucusu üzerinden açın (ör. <code style="font-size:11px;">npx serve .</code> veya Vercel). <code>file://</code> ile API çağrısı yapılamaz.',
+    apiNotJson:'API yanıtı geçerli JSON değil.',
+    apiHtmlHint:' Sunucu HTML döndürdü; /api isteği genelde yanlışlıkla ana sayfaya yönleniyor (Vercel rewrite).',
+    reqFailed:function(s){return'İstek başarısız ('+s+').';},
+    noItems:'Dosyada bütçe kalemi bulunamadı',
+    invalidPayload:'Geçersiz veri',
+    analyzeFail:'Analiz başarısız',
+    apiErrFallback:'API hatası'
+  },
+  en:{
+    errPrefix:'Error:',
+    fileProto:'Open this app over HTTP (e.g. <code style="font-size:11px;">npx serve .</code> or Vercel). API calls do not work from <code>file://</code>.',
+    apiNotJson:'API response is not valid JSON.',
+    apiHtmlHint:' Server returned HTML; /api may be rewritten to the SPA (check Vercel config).',
+    reqFailed:function(s){return'Request failed ('+s+').';},
+    noItems:'No budget line items found in the file',
+    invalidPayload:'Invalid data',
+    analyzeFail:'Analysis failed',
+    apiErrFallback:'API error'
+  }
+};
+function aiMsg(key,arg){
+  const pack=AI_UI[uiLang()]||AI_UI.tr;
+  const v=pack[key];
+  return typeof v==='function'?v(arg):v;
+}
 function fmt(n){ return Math.round(n||0).toLocaleString('tr-TR'); }
 function fmtMonth(ym){ if(!ym)return''; const[y,m]=ym.split('-'); return(MONTHS_TR[parseInt(m,10)-1]||ym)+' '+y; }
 function curMonthKey(){ return _activeMonth; }
@@ -2800,7 +2834,7 @@ function resetAIImport(){
 async function runAIImport(){
   if(!_aiImportFile){showSnack('Önce dosya seçin');return;}
   if(location.protocol==='file:'){
-    document.getElementById('ai-import-result').innerHTML='<div style="color:var(--md-error);font-size:13px;padding:10px;background:var(--md-error-container);border-radius:8px;">AI analizi için sayfayı bir HTTP sunucusu üzerinden açmanız gerekir (ör. <code style="font-size:11px;">npx serve .</code> veya Vercel). <code>file://</code> ile açıldığında API çağrısı yapılamaz.</div>';
+    document.getElementById('ai-import-result').innerHTML='<div style="color:var(--md-error);font-size:13px;padding:10px;background:var(--md-error-container);border-radius:8px;">'+aiMsg('fileProto')+'</div>';
     return;
   }
   const btn=document.getElementById('ai-import-btn');
@@ -2880,22 +2914,20 @@ Yıllık tutarları 12'ye böl, aylık olarak göster.`;
     try{
       data=JSON.parse(rawBody);
     }catch(parseErr){
-      const hint=rawBody.trim().startsWith('<')||rawBody.includes('<!DOCTYPE')
-        ? ' Sunucu HTML döndürdü — genelde /api isteği yanlışlıkla ana sayfaya yönlendiriliyor (Vercel routes/builds).'
-        : '';
-      throw new Error('API yanıtı geçerli JSON değil.'+hint);
+      const hint=rawBody.trim().startsWith('<')||rawBody.includes('<!DOCTYPE')?aiMsg('apiHtmlHint'):'';
+      throw new Error(aiMsg('apiNotJson')+hint);
     }
     const errMsg=(typeof data.error==='object'&&data.error&&data.error.message)||(typeof data.error==='string'&&data.error);
     if(errMsg)throw new Error(errMsg);
-    if(data.type==='error'&&data.error)throw new Error(data.error.message||'API hatası');
-    if(!resp.ok)throw new Error('İstek başarısız ('+resp.status+').');
+    if(data.type==='error'&&data.error)throw new Error(data.error.message||aiMsg('apiErrFallback'));
+    if(!resp.ok)throw new Error(aiMsg('reqFailed',resp.status));
 
     const raw=(data.content||[]).map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
     const parsed=JSON.parse(raw);
     const items=parsed.items||[];
     const newCats=parsed.newCategories||[];
 
-    if(!items.length)throw new Error('Dosyada bütçe kalemi bulunamadı');
+    if(!items.length)throw new Error(aiMsg('noItems'));
 
     // Preview
     result.innerHTML=`
@@ -2927,7 +2959,7 @@ Yıllık tutarları 12'ye böl, aylık olarak göster.`;
     if(applyBtn)applyBtn.onclick=function(){applyAIImportData(parsed);};
 
   }catch(e){
-    result.innerHTML=`<div style="color:var(--md-error);font-size:13px;padding:10px;background:var(--md-error-container);border-radius:8px;">Hata: ${esc(e.message||'Analiz başarısız')}</div>`;
+    result.innerHTML=`<div style="color:var(--md-error);font-size:13px;padding:10px;background:var(--md-error-container);border-radius:8px;">${esc(aiMsg('errPrefix'))} ${esc(e.message||aiMsg('analyzeFail'))}</div>`;
   }finally{
     btn.disabled=false; btn.textContent='AI ile Analiz Et';
   }
@@ -2973,7 +3005,7 @@ async function excelToCSV(file){
 
 function applyAIImportData(parsed){
   try{
-    if(!parsed||typeof parsed!=='object')throw new Error('Geçersiz veri');
+    if(!parsed||typeof parsed!=='object')throw new Error(aiMsg('invalidPayload'));
     const items=parsed.items||[];
     const newCats=parsed.newCategories||[];
 

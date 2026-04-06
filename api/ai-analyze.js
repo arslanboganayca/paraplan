@@ -11,7 +11,7 @@ module.exports = async function handler(req, res) {
   }
   if (!process.env.ANTHROPIC_API_KEY) {
     return res.status(500).json({
-      error: { message: 'ANTHROPIC_API_KEY ortam değişkeni Vercel projesinde tanımlı değil.' }
+      error: { message: 'ANTHROPIC_API_KEY is not set in the environment (e.g. Vercel project settings).' }
     });
   }
   try {
