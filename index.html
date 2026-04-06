@@ -2815,6 +2815,10 @@ function resetAIImport(){
 
 async function runAIImport(){
   if(!_aiImportFile){showSnack('Önce dosya seçin');return;}
+  if(location.protocol==='file:'){
+    document.getElementById('ai-import-result').innerHTML='<div style="color:var(--md-error);font-size:13px;padding:10px;background:var(--md-error-container);border-radius:8px;">AI analizi için sayfayı bir HTTP sunucusu üzerinden açmanız gerekir (ör. <code style="font-size:11px;">npx serve .</code> veya Vercel). <code>file://</code> ile açıldığında API çağrısı yapılamaz.</div>';
+    return;
+  }
   const btn=document.getElementById('ai-import-btn');
   const result=document.getElementById('ai-import-result');
   btn.disabled=true; btn.textContent='Analiz ediliyor...';
@@ -2887,8 +2891,20 @@ Yıllık tutarları 12'ye böl, aylık olarak göster.`;
       },
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,system:systemPrompt,messages})
     });
-    const data=await resp.json();
-    if(data.error)throw new Error(data.error.message||'API hatası');
+    const rawBody=await resp.text();
+    let data;
+    try{
+      data=JSON.parse(rawBody);
+    }catch(parseErr){
+      const hint=rawBody.trim().startsWith('<')||rawBody.includes('<!DOCTYPE')
+        ? ' Sunucu HTML döndürdü — genelde /api isteği yanlışlıkla ana sayfaya yönlendiriliyor (Vercel routes/builds).'
+        : '';
+      throw new Error('API yanıtı geçerli JSON değil.'+hint);
+    }
+    const errMsg=(typeof data.error==='object'&&data.error&&data.error.message)||(typeof data.error==='string'&&data.error);
+    if(errMsg)throw new Error(errMsg);
+    if(data.type==='error'&&data.error)throw new Error(data.error.message||'API hatası');
+    if(!resp.ok)throw new Error('İstek başarısız ('+resp.status+').');
 
     const raw=(data.content||[]).map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
     const parsed=JSON.parse(raw);
