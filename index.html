@@ -2991,9 +2991,11 @@ Serbest ve düzensiz veri kuralları:
 - İlgisiz veya boş sütunları yok say; sayı ve harcama bağlamı taşıyan her şeyi değerlendir.
 - Mesajda bazen otomatik tablo tahmini JSON'u verilir; ham metinle çelişirse her zaman ham metni ve kullanıcının yazdığını esas al.
 
-cat ve subcat:
-- cat = ana harcama grubu (geniş: Konut, Gıda, Ulaşım, Eğlence… veya kullanıcının kullandığı isim).
-- subcat = kalem detayı (Kira, Netflix, Market…) veya bilgi yoksa "".
+cat ve subcat (1-n ilişki):
+- Her alt kategori (subcat) tam olarak bir ana kategoriye (cat) bağlıdır: bir cat'in altında birden çok farklı subcat olabilir; subcat asla "üst" grup olmaz.
+- Aynı subcat metni farklı cat'ler altında ayrı ayrı bulunabilir; her JSON satırında cat ile subcat tutarlı olsun (subcat, o satırın cat'ine ait kalem).
+- cat = ana harcama grubu (geniş: Konut, Gıda, Ulaşım… veya kullanıcının ismi).
+- subcat = o ana kategorinin alt kalemi (Kira, Netflix, Market…) veya bilgi yoksa "".
 - Tabloda iki metin sütunu varsa genelde geniş/tekrarlayan grup → cat, satıra özel isim → subcat.
 
 type: kira, abonelik, sabit fatura, kredi taksidi → "fixed"; günlük/değişen giderler → "variable".
@@ -3152,18 +3154,25 @@ function applyAIImportData(parsed){
       }
     });
 
+    if(!state.subcategories)state.subcategories={};
+
     let added=0;
     items.forEach(it=>{
       if(!it.cat||!it.budget)return;
-      if(!state.categories.includes(it.cat)){
-        state.categories.push(it.cat);
-        if(!state.subcategories)state.subcategories={};
-        state.subcategories[it.cat]=[];
+      const catName=String(it.cat).trim();
+      const subName=String(it.subcat||'').trim();
+      if(!state.categories.includes(catName)){
+        state.categories.push(catName);
+        if(!state.subcategories[catName])state.subcategories[catName]=[];
       }
+      if(!state.subcategories[catName])state.subcategories[catName]=[];
+      if(subName&&!state.subcategories[catName].includes(subName))
+        state.subcategories[catName].push(subName);
+
       state.budgetItems.push({
         id:Date.now()+Math.random(),
-        cat:it.cat,
-        subcat:it.subcat||'',
+        cat:catName,
+        subcat:subName,
         person:state.persons[0]?.name||'Aile',
         budget:Math.round(it.budget||0),
         type:it.type==='fixed'?'fixed':'variable',
