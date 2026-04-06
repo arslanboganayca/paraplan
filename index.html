@@ -1035,12 +1035,8 @@ async function sbFetch(path, options={}) {
   return text ? JSON.parse(text) : [];
 }
 
-// ── Normalize: state → Supabase tablolarına kaydet ──────────────────
-async function saveState() {
-  // Her zaman localStorage'a yedekle
-  try { localStorage.setItem('budget-v4', JSON.stringify(state)); } catch(e){}
-
-  // Supabase yoksa localStorage yeter
+// ── Tam Supabase senkronu (saveState tarafından arka planda tetiklenir) ─
+async function flushStateToSupabase() {
   if (!state._supaUserId || !state._supaToken) return;
 
   try {
@@ -1269,23 +1265,11 @@ async function loadFromSupabase(uid) {
   }
 }
 
-async function saveState() {
-  // Her zaman localStorage'a yedekle
+function saveState() {
   try { localStorage.setItem('budget-v4', JSON.stringify(state)); } catch(e){}
-  // Supabase varsa async kaydet (fire and forget — UI'ı bekletme)
   if (state._supaUserId && state._supaToken) {
-    saveToSupabase().catch(e => console.warn('SB save:', e.message));
+    flushStateToSupabase().catch(e => console.warn('SB save:', e.message));
   }
-}
-
-// Hızlı, non-blocking Supabase save — sadece core kullanıcı verisi + dirty
-async function saveToSupabase() {
-  const uid = state._supaUserId;
-  // 1. users
-  await sbFetch('users?id=eq.' + uid, {
-    method: 'PATCH',
-    body: JSON.stringify({ name: state.name||'', surname: state.surname||'', income: state.income||0, reserve: state.reserve||0, updated_at: new Date().toISOString() })
-  });
 }
 
 async function loadState() {
@@ -2937,8 +2921,10 @@ Yıllık tutarları 12'ye böl, aylık olarak göster.`;
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end;">
         <button class="btn btn-text btn-sm" onclick="document.getElementById('ai-import-result').innerHTML='';">İptal</button>
-        <button class="btn btn-filled btn-sm" onclick="applyAIImport(${JSON.stringify(JSON.stringify(parsed))})">Bütçeye Uygula</button>
+        <button type="button" class="btn btn-filled btn-sm" id="ai-import-apply-btn">Bütçeye Uygula</button>
       </div>`;
+    const applyBtn=document.getElementById('ai-import-apply-btn');
+    if(applyBtn)applyBtn.onclick=function(){applyAIImportData(parsed);};
 
   }catch(e){
     result.innerHTML=`<div style="color:var(--md-error);font-size:13px;padding:10px;background:var(--md-error-container);border-radius:8px;">Hata: ${esc(e.message||'Analiz başarısız')}</div>`;
@@ -2985,13 +2971,12 @@ async function excelToCSV(file){
   }
 }
 
-function applyAIImport(jsonStr){
+function applyAIImportData(parsed){
   try{
-    const parsed=JSON.parse(jsonStr);
+    if(!parsed||typeof parsed!=='object')throw new Error('Geçersiz veri');
     const items=parsed.items||[];
     const newCats=parsed.newCategories||[];
 
-    // Yeni kategorileri state'e ekle
     newCats.forEach(cat=>{
       if(!state.categories.includes(cat)){
         state.categories.push(cat);
@@ -3000,11 +2985,9 @@ function applyAIImport(jsonStr){
       }
     });
 
-    // Bütçe kalemlerini ekle
     let added=0;
     items.forEach(it=>{
       if(!it.cat||!it.budget)return;
-      // Kategori yoksa ekle
       if(!state.categories.includes(it.cat)){
         state.categories.push(it.cat);
         if(!state.subcategories)state.subcategories={};
@@ -3032,11 +3015,15 @@ function applyAIImport(jsonStr){
       </div>`;
     resetAIImport();
     showSnack(added+' kalem eklendi — tüm sayfalar güncellendi');
-    // Tüm sayfaları yenile
     renderIfDirty('dashboard');
     renderIfDirty('budget');
     renderIfDirty('settings');
   }catch(e){showSnack('Aktarım hatası: '+e.message);}
+}
+
+function applyAIImport(jsonStr){
+  try{applyAIImportData(JSON.parse(jsonStr));}
+  catch(e){showSnack('Aktarım hatası: '+e.message);}
 }
 function renderSettings(){
   const sn=document.getElementById('settings-name');if(sn&&document.activeElement!==sn)sn.value=state.name||'';
