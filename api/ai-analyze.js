@@ -3,6 +3,11 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(500).json({
+      error: { message: 'ANTHROPIC_API_KEY ortam değişkeni Vercel projesinde tanımlı değil.' }
+    });
+  }
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
