@@ -2850,27 +2850,35 @@ async function runAIImport(){
     const isCSV=ext==='csv';
 
     const cats=state.categories.join(', ');
-    const systemPrompt=`Sen bir kişisel finans asistanısın. Kullanıcı bir bütçe belgesi yükledi. 
-Belgedeki TÜM bütçe kalemlerini, harcama kategorilerini ve tutarları analiz et.
+    const systemPrompt=`Sen bir kişisel finans asistanısın. Kullanıcı bir bütçe belgesi yükledi.
+Belgedeki TÜM bütçe satırlarını oku; tutarları ve sabit/değişken bilgisini çıkar.
 
-Mevcut kategoriler: ${cats}
+Mevcut uygulama kategorileri (eşleştirme için): ${cats}
+
+KRİTİK — "cat" ve "subcat" alanları (karıştırma):
+- "cat" = ANA / ÜST kategori: tabloda "Kategori", "Category", "Grup", "Ana kategori" vb. başlıklı sütunun değeri. Geniş harcama grubu (Konut, Gıda, Ulaşım…).
+- "subcat" = ALT kategori veya kalem detayı: "Alt kategori", "Alt Kategori", "Subcategory", "Detay", "Kalem", "Açıklama", "İşlem" vb. başlıklı sütunun değeri. Ana kategorinin altındaki satır açıklaması.
+- Başlık satırı varsa sütun adlarına kesin uy: kullanıcının Excel'de yazdığı metinleri olduğu gibi "cat" ve "subcat"e yerleştir; sütunları birbirine atlama veya yer değiştirme.
+- Yaygın hata yapma: ilk veri sütununu hep subcat sanma. Hangi sütunun "Kategori" hangisinin "Alt kategori" olduğunu başlıktan oku.
+- İki metin sütunu var ve başlık belirsizse: aynı değer birden çok satırda tekrarlanıyorsa (üst grup) → cat; satıra özel dar isim → subcat.
+- Yalnızca tek metin sütunu varsa: metni "cat"e yaz, "subcat" için "" (boş string) kullan.
+- Tabloda alt kategori sütunu yoksa "subcat" her zaman "" olabilir.
 
 Görevin:
-1. Belgedeki her kalemi tespit et (kategori, alt kategori, aylık tutar, sabit mi değişken mi)
-2. Yeni kategoriler varsa bunları da listele
-3. SADECE JSON formatında yanıt ver, başka hiçbir şey yazma
+1. Her satır için doğru cat/subcat, aylık tutar, type (fixed/variable) ver.
+2. Yeni ana kategoriler varsa "newCategories"a ekle (cat alanındaki yeni üst grup adları).
+3. SADECE JSON yaz; açıklama veya markdown kullanma.
 
 Yanıt formatı:
 {
-  "newCategories": ["Kategori1", "Kategori2"],
+  "newCategories": ["Kategori1"],
   "items": [
     {"cat": "Konut", "subcat": "Kira", "budget": 18000, "type": "fixed"},
     {"cat": "Gıda", "subcat": "Market", "budget": 6500, "type": "variable"}
   ]
 }
 
-type: "fixed" = sabit gider (her ay aynı), "variable" = değişken gider
-Yıllık tutarları 12'ye böl, aylık olarak göster.`;
+type: "fixed" = sabit gider, "variable" = değişken. Yıllık tutarları 12'ye böl (aylık budget).`;
 
     let messages;
 
@@ -2891,11 +2899,15 @@ Yıllık tutarları 12'ye böl, aylık olarak göster.`;
     } else if(isExcel){
       // Excel → SheetJS ile CSV'ye çevir
       const csvText=await excelToCSV(_aiImportFile);
-      messages=[{role:'user',content:`Aşağıdaki tablo verisini (Excel'den CSV'ye çevrildi) analiz et:\n\n${csvText}`}];
+      const excelGuide='Bu veri Excel\'den CSV satırları olarak geldi. İlk satır sütun başlıkları olabilir.\n'+
+        'cat = başlığında Kategori/Category/Grup/Ana kategori geçen sütun; subcat = Alt kategori/Subcategory/Detay/Kalem/Açıklama geçen sütun.\n'+
+        'Kullanıcının hücrede yazdığı ifadeleri aynen koru; kategori ile alt kategoriyi asla ters çevirme.\n\n';
+      messages=[{role:'user',content:excelGuide+csvText}];
     } else {
       // CSV / TXT
       const text=await fileToText(_aiImportFile);
-      messages=[{role:'user',content:`Aşağıdaki veriyi analiz et:\n\n${text}`}];
+      const tabGuide='Tablolu veri: başlık satırından cat (ana kategori) ve subcat (alt kategori/detay) sütunlarını ayırt et; metinleri olduğu gibi kullan, sütunları karıştırma.\n\n';
+      messages=[{role:'user',content:tabGuide+text}];
     }
 
     // TODO: Supabase Edge Function endpoint'ine bağlanacak
