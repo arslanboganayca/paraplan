@@ -720,7 +720,7 @@ tbody tr:hover td{background:rgba(0,106,106,.04);}
           <div class="section-title" style="margin:0;">AI ile Veri Aktarımı</div>
           <span style="font-size:11px;background:var(--md-tertiary-container);color:var(--md-on-tertiary-container);padding:2px 10px;border-radius:20px;font-weight:500;">YENİ</span>
         </div>
-        <p class="text-sm mb12" style="color:var(--md-on-surface-variant);">Excel, CSV, PDF veya ekran görüntüsü yükleyin. AI bütçe kalemlerini ve kategorileri otomatik tanıyıp yapınıza aktarır.</p>
+        <p class="text-sm mb12" style="color:var(--md-on-surface-variant);">Excel, CSV, PDF veya ekran görüntüsü yükleyin. Tablo düzeni şart değil; notlar, ek sütunlar veya serbest metin de okunur. AI kalemleri ve kategorileri çıkarıp yapınıza aktarır.</p>
 
         <!-- Drop zone -->
         <div id="ai-drop-zone"
@@ -2945,6 +2945,11 @@ function tryParseStructuredBudgetTable(fullText){
   return{items,newCategories};
 }
 
+function formatStructuredHintForAI(hint){
+  if(!hint||!hint.items||!hint.items.length)return'';
+  return '\n[Yardımcı programatik tahmin — hatalı veya eksikse yok say; aşağıdaki ham metin ve tabloyu esas al]\n'+JSON.stringify({items:hint.items.slice(0,120)})+'\n\n';
+}
+
 async function runAIImport(){
   if(!_aiImportFile){showSnack('Önce dosya seçin');return;}
   if(location.protocol==='file:'){
@@ -2967,43 +2972,38 @@ async function runAIImport(){
     if(isExcel)tabText=await excelToCSV(_aiImportFile);
     else if(isCSV)tabText=await fileToText(_aiImportFile);
 
-    let parsed=null,fromTable=false;
+    let structuredHint=null;
     if(tabText){
       const local=tryParseStructuredBudgetTable(tabText);
-      if(local&&local.items.length){parsed=local;fromTable=true;}
+      if(local&&local.items.length)structuredHint=local;
     }
 
-    if(!parsed){
     const cats=state.categories.join(', ');
-    const systemPrompt=`Sen bir kişisel finans asistanısın. Kullanıcı bir bütçe belgesi yükledi.
-Belgedeki TÜM bütçe satırlarını oku; tutarları ve sabit/değişken bilgisini çıkar.
+    const systemPrompt=`Sen kişisel finans verisi çıkaran bir asistansın. Girdi düzgün tablo olmak zorunda değildir: Excel, CSV, serbest metin, notlar, hikâye anlatımı, karışık sütunlar, cümle içinde geçen rakamlar veya görüntü olabilir.
 
-Mevcut uygulama kategorileri (eşleştirme için): ${cats}
+Hedef: Belgedeki TÜM harcama (ve varsa tekrarlayan bütçe) kalemlerini çıkar; her kalem için aylık tutarı TL olarak tahmin et veya oku.
 
-KRİTİK — "cat" ve "subcat" alanları (karıştırma):
-- "cat" = ANA / ÜST kategori: tabloda "Kategori", "Category", "Grup", "Ana kategori" vb. başlıklı sütunun değeri. Geniş harcama grubu (Konut, Gıda, Ulaşım…).
-- "subcat" = ALT kategori veya kalem detayı: "Alt kategori", "Alt Kategori", "Subcategory", "Detay", "Kalem", "Açıklama", "İşlem" vb. başlıklı sütunun değeri. Ana kategorinin altındaki satır açıklaması.
-- Başlık satırı varsa sütun adlarına kesin uy: kullanıcının Excel'de yazdığı metinleri olduğu gibi "cat" ve "subcat"e yerleştir; sütunları birbirine atlama veya yer değiştirme.
-- Yaygın hata yapma: ilk veri sütununu hep subcat sanma. Hangi sütunun "Kategori" hangisinin "Alt kategori" olduğunu başlıktan oku.
-- İki metin sütunu var ve başlık belirsizse: aynı değer birden çok satırda tekrarlanıyorsa (üst grup) → cat; satıra özel dar isim → subcat.
-- Yalnızca tek metin sütunu varsa: metni "cat"e yaz, "subcat" için "" (boş string) kullan.
-- Tabloda alt kategori sütunu yoksa "subcat" her zaman "" olabilir.
+Mevcut uygulama kategorileri (eşleştir / yakın olanları kullan): ${cats}
 
-Görevin:
-1. Her satır için doğru cat/subcat, aylık tutar, type (fixed/variable) ver.
-2. Yeni ana kategoriler varsa "newCategories"a ekle (cat alanındaki yeni üst grup adları).
-3. SADECE JSON yaz; açıklama veya markdown kullanma.
+Serbest ve düzensiz veri kuralları:
+- Tablo, paragraf veya ikisinin karışımı olabilir; başlıksız sütun, fazladan sütun, birleşik hücre metni, emoji, yorum satırları olabilir — hepsini bağlamdan yorumla.
+- Kullanıcının yazdığı cümleleri oku: "Kira ayda 22 bin", "Netflix 450", "market için yaklaşık 18k gidiyoruz" gibi ifadelerden de kalem üret.
+- İlgisiz veya boş sütunları yok say; sayı ve harcama bağlamı taşıyan her şeyi değerlendir.
+- Mesajda bazen otomatik tablo tahmini JSON'u verilir; ham metinle çelişirse her zaman ham metni ve kullanıcının yazdığını esas al.
 
-Yanıt formatı:
-{
-  "newCategories": ["Kategori1"],
-  "items": [
-    {"cat": "Konut", "subcat": "Kira", "budget": 18000, "type": "fixed"},
-    {"cat": "Gıda", "subcat": "Market", "budget": 6500, "type": "variable"}
-  ]
-}
+cat ve subcat:
+- cat = ana harcama grubu (geniş: Konut, Gıda, Ulaşım, Eğlence… veya kullanıcının kullandığı isim).
+- subcat = kalem detayı (Kira, Netflix, Market…) veya bilgi yoksa "".
+- Tabloda iki metin sütunu varsa genelde geniş/tekrarlayan grup → cat, satıra özel isim → subcat.
 
-type: "fixed" = sabit gider, "variable" = değişken. Yıllık tutarları 12'ye böl (aylık budget).`;
+type: kira, abonelik, sabit fatura, kredi taksidi → "fixed"; günlük/değişen giderler → "variable".
+
+Yıllık rakamları 12'ye böl. Tutar belirsizse makul tahminle yine de kalemi ekle.
+
+SADECE geçerli JSON döndür; markdown, açıklama veya kod bloğu kullanma.
+
+Format:
+{"newCategories":["..."],"items":[{"cat":"...","subcat":"...","budget":0,"type":"fixed"}]}`;
 
     let messages;
 
@@ -3012,26 +3012,24 @@ type: "fixed" = sabit gider, "variable" = değişken. Yıllık tutarları 12'ye 
       const mimeType=_aiImportFile.type||'image/png';
       messages=[{role:'user',content:[
         {type:'image',source:{type:'base64',media_type:mimeType,data:b64}},
-        {type:'text',text:'Bu görseldeki bütçe verilerini analiz et ve JSON formatında çıkar.'}
+        {type:'text',text:'Bu görseldeki tüm bütçe/harcama bilgisini oku; tablo, el yazısı not veya karışık düzen olabilir. Cümle ve rakamlardan kalemleri çıkar; JSON formatında döndür.'}
       ]}];
     } else if(isPDF){
       const b64=await fileToBase64(_aiImportFile);
       messages=[{role:'user',content:[
         {type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},
-        {type:'text',text:'Bu PDF dosyasındaki bütçe verilerini analiz et ve JSON formatında çıkar.'}
+        {type:'text',text:'Bu PDF\'teki metin ve tabloların tamamını oku; hikâye, not veya düzensiz yerleşim olabilir. Tüm harcama kalemlerini çıkar; JSON formatında döndür.'}
       ]}];
     } else if(isExcel&&tabText){
-      const excelGuide='Bu veri Excel\'den CSV satırları olarak geldi. İlk satır sütun başlıkları olabilir.\n'+
-        'cat = başlığında Kategori/Category/Grup/Ana kategori geçen sütun; subcat = Alt kategori/Subcategory/Detay/Kalem/Açıklama geçen sütun.\n'+
-        'Kullanıcının hücrede yazdığı ifadeleri aynen koru; kategori ile alt kategoriyi asla ters çevirme.\n\n';
-      messages=[{role:'user',content:excelGuide+tabText}];
+      const excelGuide='Aşağıdaki içerik Excel\'den CSV olarak aktarıldı. Kullanıcı dosyayı istediği gibi doldurmuş olabilir: düzgün tablo şart değil; aralarda uzun metin, not, hikâye, boş satır veya anlamsız sütunlar olabilir. Tüm anlamlı harcama kalemlerini çıkar.\n\n';
+      messages=[{role:'user',content:excelGuide+formatStructuredHintForAI(structuredHint)+'--- HAM VERİ (tamamını oku) ---\n'+tabText}];
     } else if(isCSV&&tabText){
-      const tabGuide='Tablolu veri: başlık satırından cat (ana kategori) ve subcat (alt kategori/detay) sütunlarını ayırt et; metinleri olduğu gibi kullan, sütunları karıştırma.\n\n';
-      messages=[{role:'user',content:tabGuide+tabText}];
+      const tabGuide='CSV / metin karışık olabilir; cümleler ve ek sütunlar olabilir. Ham verinin tamamını okuyup tüm bütçe kalemlerini çıkar.\n\n';
+      messages=[{role:'user',content:tabGuide+formatStructuredHintForAI(structuredHint)+'--- HAM VERİ ---\n'+tabText}];
     } else {
       const text=await fileToText(_aiImportFile);
-      const tabGuide='Tablolu veri: başlık satırından cat (ana kategori) ve subcat (alt kategori/detay) sütunlarını ayırt et; metinleri olduğu gibi kullan, sütunları karıştırma.\n\n';
-      messages=[{role:'user',content:tabGuide+text}];
+      const tabGuide='Bu dosya serbest metin veya karışık tablo olabilir; paragraf, liste, hikâye veya notlar içerebilir. Tüm harcama kalemlerini metinden ve sayılardan çıkar.\n\n';
+      messages=[{role:'user',content:tabGuide+'--- HAM VERİ ---\n'+text}];
     }
 
     const ANALYZE_URL = '/api/ai-analyze';
@@ -3042,7 +3040,7 @@ type: "fixed" = sabit gider, "variable" = değişken. Yıllık tutarları 12'ye 
         'anthropic-version':'2023-06-01',
         'x-internal': '1'
       },
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,system:systemPrompt,messages})
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:8192,system:systemPrompt,messages})
     });
     const rawBody=await resp.text();
     let data;
@@ -3058,8 +3056,7 @@ type: "fixed" = sabit gider, "variable" = değişken. Yıllık tutarları 12'ye 
     if(!resp.ok)throw new Error(aiMsg('reqFailed',resp.status));
 
     const raw=(data.content||[]).map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
-    parsed=JSON.parse(raw);
-    }
+    const parsed=JSON.parse(raw);
 
     const items=parsed.items||[];
     const newCats=parsed.newCategories||[];
@@ -3068,7 +3065,7 @@ type: "fixed" = sabit gider, "variable" = değişken. Yıllık tutarları 12'ye 
 
     // Preview
     result.innerHTML=`
-      ${fromTable?'<div style="font-size:12px;padding:8px 12px;margin-bottom:10px;background:var(--md-primary-container);color:var(--md-on-primary-container);border-radius:8px;">✓ Tablo başlıklarından okundu: kategori, alt kategori ve tutar sütunları doğrudan eşlendi (AI kullanılmadı).</div>':''}
+      ${structuredHint&&structuredHint.items&&structuredHint.items.length?'<div style="font-size:12px;padding:8px 12px;margin-bottom:10px;background:var(--md-surface-container-high);color:var(--md-on-surface-variant);border-radius:8px;">ℹ️ Tablo için otomatik sütun tahmini modele yardımcı veri olarak eklendi; sonuç AI yorumuna dayanıyor.</div>':''}
       <div style="font-size:13px;font-weight:500;margin-bottom:8px;">${items.length} kalem, ${newCats.length} yeni kategori bulundu:</div>
       ${newCats.length?`<div style="background:var(--md-tertiary-container);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--md-on-tertiary-container);margin-bottom:10px;">
         <strong>Yeni kategoriler eklenecek:</strong> ${newCats.map(c=>esc(c)).join(' · ')}
